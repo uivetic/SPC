@@ -1,1 +1,1 @@
-# SPC
+Aplikacija za praćenje članstva studentske organizacije BEST Beograd
