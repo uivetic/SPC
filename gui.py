@@ -5,6 +5,13 @@ from qt import Ui_MainWindow
 import gspread 
 from google.oauth2.service_account import Credentials
 import unicodedata
+import sys
+import os
+
+
+# resava qt.qpa.wayland: Wayland does not support QWindow::requestActivate()
+if sys.platform.startswith("linux"):
+    os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 
 #Normalizacija imena tako da uroš -> uros
@@ -30,9 +37,6 @@ all_values = sheet.get_all_values()
 
 names_list = [row[1] for row in all_values[6:] if isinstance(row[1], str)]
 
-# cell = sheet.find("Uroš Ivetić")
-# print(cell.row, cell.col)
-
 class MyWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
@@ -41,20 +45,59 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # completer za imena
         completer = QCompleter(names_list)
         completer.setCaseSensitivity(False)
-        completer.filterMode  
+
+
 
         self.lineEdit.setCompleter(completer)
-
-        self.pushButton.clicked.connect(self.go_to_page2)
+        self.pushButton.clicked.connect(self.go_to_spc)
         self.nazadButton.clicked.connect(self.go_to_mainMenu)
+        self.comboBoxProjekat.currentIndexChanged.connect(self.on_project_changed)
+        self.comboBoxUloga.currentIndexChanged.connect(self.on_role_changed)
+        self.comboBoxUloga.setEnabled(False)
+        self.comboBoxBodovi.setEnabled(False)
 
-    def go_to_page2(self):
-        
+    def go_to_spc(self):
         self.stackedWidget.setCurrentIndex(1)
     
     def go_to_mainMenu(self):
         self.stackedWidget.setCurrentIndex(0)
+    
+    def on_project_changed(self, index):
+        print("Selected:", self.comboBoxProjekat.itemText(index))
+        if len(self.comboBoxProjekat.itemText(index)) > 0:
+            self.comboBoxUloga.setEnabled(True)
+        else:
+            #self.comboBoxUloga.setText("")
+            self.comboBoxUloga.setEnabled(False)
+            self.comboBoxUloga.setCurrentIndex(0)
 
+    
+    def on_role_changed(self, index):
+        #items = self.get_combo_items(self.comboBoxUloga)
+        if self.comboBoxUloga.itemText(index) == "PR Tim" or self.comboBoxUloga.itemText(index) == "FR Tim":
+            self.comboBoxBodovi.clear()
+            self.comboBoxBodovi.setEnabled(True)
+            self.comboBoxBodovi.insertItem(0)
+            self.comboBoxBodovi.insertItem(1)
+            self.comboBoxBodovi.insertItem(2)
+
+        if self.comboBoxUloga.itemText(index) == "CT":
+            self.comboBoxBodovi.clear()
+            self.comboBoxBodovi.setEnabled(True)
+            if self.comboBoxProjekat.itemText(index) == "JobFair" or self.comboBoxProjekat.itemText(index) == "Kurs":
+                self.comboBoxBodovi.insertItem("4")
+                self.comboBoxBodovi.insertItem("8")
+                self.comboBoxBodovi.insertItem("12")
+                self.comboBoxBodovi.insertItem("16")
+                self.comboBoxBodovi.insertItem("20")
+                self.comboBoxBodovi.insertItem("24")
+            else:
+                self.comboBoxBodovi.insertItem("4")
+                self.comboBoxBodovi.insertItem("8")
+                self.comboBoxBodovi.insertItem("12")
+
+    def get_combo_items(comboBox):
+        return [comboBox.itemText(i) for i in range(comboBox.count())]
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MyWindow()
