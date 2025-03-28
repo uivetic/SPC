@@ -7,6 +7,9 @@ from google.oauth2.service_account import Credentials
 import unicodedata
 import sys
 import os
+from rolesOpste import rolesOpste, rolesOpsteDict, kvartaliGodisnji
+import rolesHR
+import rolesProjekti
 from PyQt5.QtWidgets import QComboBox
 
 
@@ -43,70 +46,95 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         super().__init__()
         self.setupUi(self) 
         self.stackedWidget.setCurrentIndex(0)
-        # completer za imena
+        
+        # Name completer
         completer = QCompleter(names_list)
         completer.setCaseSensitivity(False)
-
-
-        # completer za imena
         self.nameLineEditLeft.setCompleter(completer)
 
-        # dugmad za ulazak i izlazak iz upisivanja
+        # Enter/exit push buttons
         self.spcPushButton.clicked.connect(self.go_to_spc)
-        # self.backButtonLeft.clicked.connect(self.go_to_mainMenu)
+        self.backButtonLeft.clicked.connect(self.go_to_mainMenu)
         
-        # opste combo-boxevi
-
-        print(type(self.dropDownOpste1))
-        print(type(self.dropDownOpste2))
-        print(type(self.dropDownOpste3))
-        print(type(self.dropDownOpste4))
-
-        self.dropDownOpste1.addItems(["", "Option 1", "Option 2", "Option 3"])
-        self.dropDownOpste2.addItems(["", "A", "B", "C"])
-        self.dropDownOpste3.addItems(["", "X", "Y", "Z"])
-        self.dropDownOpste4.addItems(["", "Red", "Blue", "Green"])
-
+        # Disable dropdowns initially
         self.dropDownOpste2.setEnabled(False)
         self.dropDownOpste3.setEnabled(False)
         self.dropDownOpste4.setEnabled(False)
 
-        # Connect signals to update next combo box
-        self.dropDownOpste1.currentIndexChanged.connect(self.update_dropDownOpste2)
-        self.dropDownOpste2.currentIndexChanged.connect(self.update_dropDownOpste3)
-        self.dropDownOpste3.currentIndexChanged.connect(self.update_dropDownOpste4)
+        self.dropDownOpste1.addItem("")
+        self.dropDownOpste2.addItem("")  # Initially empty
+        self.dropDownOpste3.addItem("")  # Initially empty
+        self.dropDownOpste4.addItem("")  # Initially empty
+        self.dropDownOpste1.addItems(rolesOpste)
+
+        # Connect signals to update dropdowns dynamically
+        self.dropDownOpste1.currentIndexChanged.connect(lambda: self.update_dropdown(1, 2, rolesOpsteDict))
+        self.dropDownOpste2.currentIndexChanged.connect(lambda: self.update_dropdown(2, 3, rolesOpsteDict))
+        self.dropDownOpste3.currentIndexChanged.connect(lambda: self.update_dropdown(3, 4, rolesOpsteDict))
 
 
-    def update_dropDownOpste2(self):
-        """Enable dropDownOpste2 if dropDownOpste1 has a selection"""
-        self.dropDownOpste2.setEnabled(bool(self.dropDownOpste1.currentText()))
-        if not self.dropDownOpste1.currentText():  # Reset subsequent selections
-            self.dropDownOpste2.setCurrentIndex(0)
-            self.dropDownOpste3.setCurrentIndex(0)
-            self.dropDownOpste4.setCurrentIndex(0)
-            self.dropDownOpste3.setEnabled(False)
-            self.dropDownOpste4.setEnabled(False)
+    def update_dropdown(self, current_index, next_index, data_dict):
+        """Updates the next dropdown based on the selected value of the current dropdown."""
+        # Get selected value from current dropdown
+        selected_value = self.get_previous_selection(current_index)
+        # Get reference to next dropdown
+        next_dropdown = getattr(self, f"dropDownOpste{next_index}", None)
 
-    def update_dropDownOpste3(self):
-        """Enable dropDownOpste3 if dropDownOpste2 has a selection"""
-        self.dropDownOpste3.setEnabled(bool(self.dropDownOpste2.currentText()))
-        if not self.dropDownOpste2.currentText():
-            self.dropDownOpste3.setCurrentIndex(0)
-            self.dropDownOpste4.setCurrentIndex(0)
-            self.dropDownOpste4.setEnabled(False)
+        # if not next_dropdown:
+        #     print('ovde return')
+        #     return  # Exit if dropdown doesn't exist
+        if not selected_value:
+            self.clear_all_dropdowns_below(current_index)
+            return
+        next_dropdown.clear()  # Clear previous items
 
-    def update_dropDownOpste4(self):
-        """Enable dropDownOpste4 if dropDownOpste3 has a selection"""
-        self.dropDownOpste4.setEnabled(bool(self.dropDownOpste3.currentText()))
-        if not self.dropDownOpste3.currentText():
-            self.dropDownOpste4.setCurrentIndex(0)
+        # Use lambda to get new options based on selected value
+        print(current_index, next_index)
+        if next_index == 3:
+            # print(rolesOpsteDict[self.dropDownOpste1.currentText()])
+            # options = self.get_roles(rolesOpsteDict[self.dropDownOpste1.currentText()].keys())
+            options = self.numbers_list_string_list(kvartaliGodisnji)
+            print(options)
+        elif next_index == 4:
+            options = self.numbers_list_string_list(rolesOpsteDict[self.dropDownOpste1.currentText()][self.dropDownOpste2.currentText()])
+            #options = self.numbers_list_string_list(options)
+            print(options)
+        else:
+            options = (lambda value: list(data_dict.get(value, {}).keys()))(selected_value)
+        if options:
+            next_dropdown.addItem("")
+            next_dropdown.addItems(options)
+            next_dropdown.setEnabled(True)
+        else:
+            next_dropdown.setEnabled(False)
+            next_dropdown.addItem("")  # Add empty item to prevent issues
 
-    
+    # Reset all subsequent dropdowns
+    def clear_all_dropdowns_below(self, next_index):
+        for i in range(next_index + 1, 5):
+            dropdown = getattr(self, f"dropDownOpste{i}", None)
+            if dropdown:
+                dropdown.clear()
+                dropdown.setEnabled(False)
 
+    def numbers_list_string_list(self, numbers_list):
+        return [str(number) for number in numbers_list]
+    def get_roles(self, map):
+        roles = []
+        for key in map:
+            roles.append(key)
+        return roles
+    def get_previous_selection(self, num):
+        dropdown = getattr(self, f"dropDownOpste{num}", None)
+        return dropdown.currentText() if dropdown else None
     def get_combo_items(comboBox):
         return [comboBox.itemText(i) for i in range(comboBox.count())]
     def go_to_spc(self):
         self.stackedWidget.setCurrentIndex(1)
+    def go_to_mainMenu(self):
+         self.stackedWidget.setCurrentIndex(0)
+
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MyWindow()
