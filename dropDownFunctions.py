@@ -1,6 +1,7 @@
 # convert [1,2,3] to ['1', '2', '3']
 from rolesOpste import rolesOpsteDict
 from rolesHR import rolesHRDict
+from rolesProjekti import rolesProjektiDict
 def numbers_list_string_list(self, numbers_list):
     return [str(number) for number in numbers_list]
 
@@ -19,7 +20,7 @@ def get_previous_selection(self, num, type):
     if type == 'h':
         dropdown = getattr(self, f"dropDownHR{num}", None)
         return dropdown.currentText() if dropdown else None
-    if type == 'h':
+    if type == 'p':
         dropdown = getattr(self, f"dropDownProjekti{num}", None)
         return dropdown.currentText() if dropdown else None
     
@@ -54,3 +55,20 @@ def get_points_for_activity(window, type):
         return numbers_list_string_list(window,
             rolesProjektiDict[window.dropDownProjekti1.currentText()]
             .get(window.dropDownProjekti2.currentText(), []))
+    
+def clear_all_dropdowns(self, next_index = 0):
+    types = ['o', 'h', 'p']
+    for type in types:
+        for i in range(next_index + 1, 5):
+            if type == 'o':
+                dropdown = getattr(self, f"dropDownOpste{i}", None)
+            if type == 'h':
+                dropdown = getattr(self, f"dropDownHR{i}", None)
+            if type == 'p':
+                dropdown = getattr(self, f"dropDownProjekti{i}", None)
+            if dropdown:
+                dropdown.clear()
+                dropdown.setEnabled(False)
+    self.dropDownHR1.setEnabled(True)
+    self.dropDownOpste1.setEnabled(True)
+    self.dropDownProjekti1.setEnabled(True)

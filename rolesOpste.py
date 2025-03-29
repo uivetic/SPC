@@ -58,6 +58,7 @@ opsteMandati = {
 }
 
 rolesOpsteDict = {
+    '':'',
     'Delegat na GA': opsteDelegatNaGA,
     'Delegat na RM': opsteDelegatNaRM,
     'Zapisničar na Skupštini': opsteZapisnicarNaSkupstini,

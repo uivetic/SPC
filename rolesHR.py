@@ -45,9 +45,10 @@ HROpstaLogistika = {
 }
 
 rolesHRDict = {
-    'Osnovni trening + radionice': HROsnovniTreningRadionice,
-    'Treninzi': HRTreninzi,
-    'Prisustvo na SSČ-u': HRPrisustvoNaSSC,
-    'Mentorstvo': HRMentorstvo,
+    '':'',
+    'Osnovni trening + radionice':  HROsnovniTreningRadionice,
+    'Treninzi':                     HRTreninzi,
+    'Prisustvo na SSČ-u':           HRPrisustvoNaSSC,
+    'Mentorstvo':                   HRMentorstvo,
     'Opšta logistika van projekta': HROpstaLogistika
 }
