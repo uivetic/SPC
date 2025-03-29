@@ -52,7 +52,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.dropDownProjekti1.currentIndexChanged.connect(lambda: update_dropdown(self, 1, 2, rolesProjektiDict, 'p'))
         self.dropDownProjekti2.currentIndexChanged.connect(lambda: update_dropdown(self, 2, 3, rolesProjektiDict, 'p'))
 
-
     def go_to_spc(self):
         self.stackedWidget.setCurrentIndex(1)
 
