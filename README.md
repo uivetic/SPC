@@ -1,1 +1,1 @@
-Aplikacija za praćenje članstva studentske organizacije BEST Beograd
+Aplikacija za praćenje članstva studentske organizacije BEST Beograd.

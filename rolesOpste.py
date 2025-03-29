@@ -1,16 +1,5 @@
 # OPSTE
 
-rolesOpste = [
-    'Delegat na GA',
-    'Delegat na RM',
-    'Zapisničar na Skupštini',
-    'Prisustvo na Skupštini',
-    'BmB',
-    'Aktivacija u godišnjim timovima',
-    'Radne grupe',
-    'Mandati'
-
-]
 opsteDelegatNaGA = {
     'sGA':[5],
     'aGA':[5]
@@ -21,6 +10,7 @@ opsteDelegatNaRM = {
 }
 
 kvartaliSkupstina = [1,2,3,4,5]
+
 opsteZapisnicarNaSkupstini = {
     'I Kvartalna':     [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5],
     'II Kvartalna':    [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5],

@@ -445,6 +445,16 @@
        <string>Poeni</string>
       </property>
      </widget>
+     <widget class="QComboBox" name="dropDownHR3">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>430</y>
+        <width>86</width>
+        <height>25</height>
+       </rect>
+      </property>
+     </widget>
     </widget>
    </widget>
   </widget>
