@@ -405,6 +405,19 @@
        </rect>
       </property>
      </widget>
+     <widget class="QPushButton" name="upisiButtonLeft">
+      <property name="geometry">
+       <rect>
+        <x>340</x>
+        <y>570</y>
+        <width>89</width>
+        <height>25</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Upiši</string>
+      </property>
+     </widget>
     </widget>
    </widget>
   </widget>

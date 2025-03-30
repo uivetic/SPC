@@ -8,7 +8,8 @@ from rolesHR import rolesHRDict
 from rolesProjekti import rolesProjektiDict
 
 from updateDropDown import update_dropdown
-from dropDownFunctions import clear_all_dropdowns
+from dropDownFunctions import clear_all_dropdowns, get_data
+from upis import upisi
 
 """Sheet connection"""
 from sheetConnection import names_list
@@ -38,20 +39,30 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.dropDownProjekti2.setEnabled(False)
         self.dropDownProjekti3.setEnabled(False)
 
-        #Populate 1st dropdown for each category  
+        # Populate 1st dropdown for each category  
         self.dropDownOpste1.addItems(rolesOpsteDict.keys())
         self.dropDownHR1.addItems(rolesHRDict.keys())
         self.dropDownProjekti1.addItems(rolesProjektiDict.keys())
 
+        type = None
         # Connect signals to update dropdowns dynamically, passing current items on the window
-        self.dropDownOpste1.currentIndexChanged.connect(lambda: update_dropdown(self, 1, 2, rolesOpsteDict, 'o'))
-        self.dropDownOpste2.currentIndexChanged.connect(lambda: update_dropdown(self, 2, 3, rolesOpsteDict, 'o'))
-        self.dropDownOpste3.currentIndexChanged.connect(lambda: update_dropdown(self, 3, 4, rolesOpsteDict, 'o'))
-        self.dropDownHR1.currentIndexChanged.connect(lambda: update_dropdown(self, 1, 2, rolesHRDict, 'h'))
-        self.dropDownHR2.currentIndexChanged.connect(lambda: update_dropdown(self, 2, 3, rolesHRDict, 'h'))
-        self.dropDownProjekti1.currentIndexChanged.connect(lambda: update_dropdown(self, 1, 2, rolesProjektiDict, 'p'))
-        self.dropDownProjekti2.currentIndexChanged.connect(lambda: update_dropdown(self, 2, 3, rolesProjektiDict, 'p'))
+        self.dropDownOpste1.currentIndexChanged.connect(lambda: update_dropdown(self, 1, 2, rolesOpsteDict, type='o'))
+        self.dropDownOpste2.currentIndexChanged.connect(lambda: update_dropdown(self, 2, 3, rolesOpsteDict, type='o'))
+        self.dropDownOpste3.currentIndexChanged.connect(lambda: update_dropdown(self, 3, 4, rolesOpsteDict, type='o'))
+        self.dropDownHR1.currentIndexChanged.connect(lambda: update_dropdown(self, 1, 2, rolesHRDict, type='h'))
+        self.dropDownHR2.currentIndexChanged.connect(lambda: update_dropdown(self, 2, 3, rolesHRDict, type='h'))
+        self.dropDownProjekti1.currentIndexChanged.connect(lambda: update_dropdown(self, 1, 2, rolesProjektiDict, type='p'))
+        self.dropDownProjekti2.currentIndexChanged.connect(lambda: update_dropdown(self, 2, 3, rolesProjektiDict, type='p'))
 
+        # Push botton listening
+        self.upisiButtonLeft.clicked.connect(self.onUpisiButtonLeftClicked)
+
+    def onUpisiButtonLeftClicked(self):
+        opsteData = get_data(window=window, type='o')
+        HRData = get_data(window=window, type='h')
+        projektiData = get_data(window=window, type='p')
+        batch = [opsteData, HRData, projektiData]
+        upisi(batch)
     def go_to_spc(self):
         self.stackedWidget.setCurrentIndex(1)
 

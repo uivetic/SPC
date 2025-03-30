@@ -72,3 +72,49 @@ def clear_all_dropdowns(self, next_index = 0):
     self.dropDownHR1.setEnabled(True)
     self.dropDownOpste1.setEnabled(True)
     self.dropDownProjekti1.setEnabled(True)
+
+
+
+def get_data(window, type):
+    data = []
+    if type == 'o':
+        if (
+            window.dropDownOpste1.currentText() and
+            window.dropDownOpste2.currentText() and
+            window.dropDownOpste3.currentText() and
+            window.dropDownOpste4.currentText()
+        ):
+            data = [
+                'o',
+                window.dropDownOpste1.currentText(),
+                window.dropDownOpste2.currentText(),
+                window.dropDownOpste3.currentText(),
+                window.dropDownOpste4.currentText()
+                ]
+        
+    if type == 'h':
+        if (
+            window.dropDownHR1.currentText() and
+            window.dropDownHR2.currentText() and
+            window.dropDownHR3.currentText()
+        ):
+            data = [
+                'h',
+                window.dropDownHR1.currentText(),
+                window.dropDownHR2.currentText(),
+                window.dropDownHR3.currentText()
+                ]
+            
+    if type == 'p':
+        if (
+            window.dropDownProjekti1.currentText() and
+            window.dropDownProjekti2.currentText() and
+            window.dropDownProjekti3.currentText()
+        ):
+            data = [
+                'p',
+                window.dropDownProjekti1.currentText(),
+                window.dropDownProjekti2.currentText(),
+                window.dropDownProjekti3.currentText()
+                ]
+    return data
