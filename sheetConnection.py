@@ -11,9 +11,9 @@ if sys.platform.startswith("linux"):
 
 #Normalize name comparison, uroš -> uros
 def normalize_name(input_str):
-
     normalized_str = unicodedata.normalize('NFD', input_str)
-    return ''.join([c for c in normalized_str if unicodedata.category(c) != 'Mn'])
+    cleaned_str = ''.join([c for c in normalized_str if unicodedata.category(c) != 'Mn'])
+    return cleaned_str.lower()
 
 # Google cloud API
 scopes = ["https://www.googleapis.com/auth/spreadsheets"]

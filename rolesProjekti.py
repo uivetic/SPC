@@ -20,7 +20,7 @@ ProjektiBDW = {
     'SR':                       [4, 8, 12],
     'FR novčani':               [2],
     'FR robni':                 [2],
-    'PR':                       [2],
+    'PR tim':                   [2],
     'Live promocije':           [0.5, 1, 1.5, 2, 2.5, 3, 3.5],
     'Logistika na projektu':    [1, 2, 3, 4, 5, 6, 7],
     'Opšta logistika':          [1, 2, 3]
@@ -33,7 +33,7 @@ ProjektiBDI = {
     'PUB asistent':                     [4],
     'FR novčani':                       [2],
     'FR robni':                         [2],
-    'PR':                               [2],
+    'PR tim':                           [2],
     'Live promocije':                   [0.5, 1, 1.5, 2, 2.5, 3, 3.5],
     'Logistika na projektu':            [1, 2, 3, 4, 5, 6, 7],
     'Opšta logistika uoči projekta':    [1, 2, 3]
@@ -45,7 +45,7 @@ ProjektiKurs = {
     'Asistenti(ACD, LOG, SOC, PUB)':    [5],
     'FR novčani':                       [2],
     'FR robni':                         [2],
-    'PR':                               [2],
+    'PR tim':                           [2],
     'Live promocije':                   [0.5, 1, 1.5, 2, 2.5, 3, 3.5],
     'Logistika na projektu':            [1, 2, 3, 4, 5, 6, 7],
     'Opšta logistika':                  [1, 2, 3]

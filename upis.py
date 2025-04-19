@@ -6,7 +6,7 @@ def upisi(items):
         if len(item):
             if item[0] == 'p':
                 resultP = find_and_write(item, workbook.worksheet("Projekti"))
-                print(resultP)
+                # print(resultP)
             if item[0] == 'h':
                 resultH = find_and_write(item, workbook.worksheet("2025 HR"))
             if item[0] == 'o':
@@ -14,29 +14,55 @@ def upisi(items):
 
 
 def find_and_write(item, sheet):
+
+    # Get all values from the sheet
     all_values = sheet.get_all_values()
     result = []
 
     for i in range(1, 3):
         found = False
+
+        # Normalize the name and split it into words
+        # Use regex to split by spaces or slashes
+        # eg. items = ['p', 'BEST design WEEK', 'SR', '4']
+        # search_words = {'BEST', 'design', 'WEEK'}
         search_words = set(re.split(r"[ /]+", normalize_name(item[i])))
+        if search_words.__contains__('pr') and search_words.__contains__('tim'):
+            word = 'pr'
+            search_words = {word}
+        if search_words.__contains__('fr') and search_words.__contains__('tim'):
+            print('contains fr')
+            word = 'fr'
+            search_words = {word}
+        if search_words.__contains__('it') and search_words.__contains__('asistent'):
+            word = 'it'
+            search_words = {word}
+        if search_words.__contains__('pub') and search_words.__contains__('asistent'):
+            word = 'pub'
+            search_words = {word}
 
-        # Start from row 1 if i == 1, otherwise start from row 3
-        start_value = 1 if i == 1 else 4  
+        start_value = 1 if i == 1 else 3  
 
-        for row_idx, row in enumerate(all_values[start_value - 1:], start=start_value):
+        for row_idx, row in enumerate(all_values[start_value:], start=start_value):
             if found:
                 break
-
+                
+            # print(row_idx, row)
             # If there is a previous result, start from that column; otherwise, start from the first column
+            # print(result)
             start_col = result[0][1] if result else 0  
 
-            for col_idx, cell in enumerate(row[start_col:], start=start_col):  
+            for col_idx, cell in enumerate(row[start_col:], start=start_col): 
+                # 11 je najduzi broj kolona za neki projekat
+                if start_col and col_idx > start_col+11:
+                    break 
                 cell_words = set(re.split(r"[ /]+", normalize_name(cell)))
-
+                if row_idx <=6:
+                    print(search_words, col_idx, row_idx, cell_words)
                 if search_words.issubset(cell_words):
                     result.append((row_idx, col_idx))
                     found = True
+                    print('Pronađeno:', search_words, cell_words, col_idx, row_idx)
                     break
             if not found:
                 result.append("None")

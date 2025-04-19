@@ -62,6 +62,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         HRData = get_data(window=window, type='h')
         projektiData = get_data(window=window, type='p')
         batch = [opsteData, HRData, projektiData]
+        print(batch)
         upisi(batch)
     def go_to_spc(self):
         self.stackedWidget.setCurrentIndex(1)
