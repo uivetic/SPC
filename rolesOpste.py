@@ -13,10 +13,10 @@ kvartaliSkupstina = [1,2,3,4,5]
 
 opsteZapisnicarNaSkupstini = {
     'I Kvartalna':     [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5],
-    'II Kvartalna':    [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5],
+    'Polugodišnja':    [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5],
     'III Kvartalna':   [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5],
     'Izborna':         [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5],
-    'Vandredna':       [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+    'Vanredna':        [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
 }
 
 opstePrisustvoNaSkupstini = {
@@ -36,7 +36,7 @@ opsteBmB = {
     'Predsednik':       [4],
 }
 
-kvartaliGodisnji = [1,2,3,4]
+kvartaliGodisnji = ['I','II','III','IV']
 opsteAktivnostUGodisnjim = {
     'PR':       [0,1,2,3,4],
     'FR':       [0,1,2,3,4],
