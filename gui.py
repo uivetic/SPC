@@ -57,12 +57,20 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # Push botton listening
         self.upisiButtonLeft.clicked.connect(self.onUpisiButtonLeftClicked)
 
+    def proveri(self, batch, name):
+        return name and any(len(d) for d in batch)
+    
     def onUpisiButtonLeftClicked(self):
         opsteData = get_data(window=window, type='o')
         HRData = get_data(window=window, type='h')
         projektiData = get_data(window=window, type='p')
+        name = window.nameLineEditLeft.text()
         batch = [opsteData, HRData, projektiData]
-        upisi(batch)
+        check = self.proveri(batch, name)
+        if check:
+            upisi(batch, name)
+        else:
+            print("Nesto fali :(")
     def go_to_spc(self):
         self.stackedWidget.setCurrentIndex(1)
 
@@ -72,7 +80,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.dropDownHR1.addItems(rolesHRDict.keys())
         self.dropDownProjekti1.addItems(rolesProjektiDict.keys())
         self.stackedWidget.setCurrentIndex(0)
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

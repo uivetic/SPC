@@ -1,21 +1,28 @@
 from sheetConnection import workbook, worksheet_list, normalize_name
+import gspread
 import re
 
-def upisi(items):
+def upisi(items, name):
     for item in items:
         if len(item):
             if item[0] == 'o':
-                resultO = find_and_write_opste(item, workbook.worksheet("2025 Opšte"))
+                sheet = workbook.worksheet("2025 Opšte")
+                resultO = find_and_write_opste(item, sheet, name)
                 print(resultO)
+                update(resultO[1], resultO[1], resultO[2], sheet)
             if item[0] == 'h':
-                resultH = find_and_write_hr(item, workbook.worksheet("2025 HR"))
+                sheet = workbook.worksheet("2025 HR")
+                resultH = find_and_write_hr(item, sheet, name)
                 print(resultH)
+                update(resultH[0],resultH[1], resultH[2], sheet)
             if item[0] == 'p':
-                resultP = find_and_write_projekti(item, workbook.worksheet("Projekti"))
+                sheet = workbook.worksheet("Projekti")
+                resultP = find_and_write_projekti(item, sheet, name)
                 print(resultP)
+                update(resultP[0], resultP[1], resultP[2], sheet)
 
 
-def find_and_write_projekti(item, sheet):
+def find_and_write_projekti(item, sheet, name):
 
     # Get all values from the sheet
     all_values = sheet.get_all_values()
@@ -70,10 +77,16 @@ def find_and_write_projekti(item, sheet):
             if not found:
                 result.append("None")
             
-    return result if result else None
+    try:
+        cell = sheet.find(name)
+        red = cell.row
+        return (red, result[-1][1], int(item[-1][0]))
+    except:
+        print("nije nasao")
+        return None
 
 
-def find_and_write_hr(item, sheet):
+def find_and_write_hr(item, sheet, name):
 
     # Get all values from the sheet
     all_values = sheet.get_all_values()
@@ -118,10 +131,16 @@ def find_and_write_hr(item, sheet):
             if not found:
                 result.append("None")
             
-    return result if result else None
+    try:
+        cell = sheet.find(name)
+        red = cell.row
+        return (red, result[-1][1], int(item[-1][0]))
+    except:
+        print("nije nasao")
+        return None
 
 
-def find_and_write_opste(item, sheet):
+def find_and_write_opste(item, sheet, name):
 
     # Get all values from the sheet
     all_values = sheet.get_all_values()
@@ -177,4 +196,22 @@ def find_and_write_opste(item, sheet):
             if not found:
                 result.append("None")
             
-    return result if result else None
+    try:
+        cell = sheet.find(name)
+        red = cell.row
+        return (red, result[-1][1], int(item[-1][0]))
+    except:
+        print("nije nasao")
+        return None
+
+def update(row, col, points, sheet):
+    try:
+        cell_val = int(sheet.cell(row, col+1).value)
+    except:
+        cell_val = None
+    if cell_val:
+        value_to_update = str(cell_val+points)
+        sheet.update_cell(row, col+1, value_to_update)
+    else:
+        value_to_update = str(points)
+        sheet.update_cell(row, col+1, value_to_update)
