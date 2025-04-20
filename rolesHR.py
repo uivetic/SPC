@@ -11,7 +11,7 @@ HROsnovniTreningRadionice = {
 }
 
 HRTreninzi = {
-    'CT EBEC':          [2],
+    'CT BDI':           [2],
     'CT SC':            [2],
     'CT JF':            [2],
     'CT GA':            [2],
