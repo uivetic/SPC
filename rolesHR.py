@@ -1,6 +1,5 @@
 # HR
 
-
 HROsnovniTreningRadionice = {
     'Osnovni FR':       [1],
     'Osnovni PR':       [1],

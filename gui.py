@@ -1,7 +1,6 @@
 import sys
 from qt import Ui_MainWindow
-from PyQt5.QtWidgets import QApplication, QMainWindow, QCompleter  
-
+from PyQt5.QtWidgets import QApplication, QMainWindow, QCompleter, QMessageBox
 
 from rolesOpste import rolesOpsteDict
 from rolesHR import rolesHRDict
@@ -20,11 +19,13 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         super().__init__()
         self.setupUi(self) 
         self.stackedWidget.setCurrentIndex(0)
+        self.allPersonsRight.setReadOnly(True)
         
         # Name completer
         completer = QCompleter(names_list)
         completer.setCaseSensitivity(False)
         self.nameLineEditLeft.setCompleter(completer)
+        self.namesRightLineEdit.setCompleter(completer)
 
         # Enter/exit push buttons
         self.spcPushButton.clicked.connect(self.go_to_spc)
@@ -45,7 +46,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.dropDownProjekti1.addItems(rolesProjektiDict.keys())
 
         type = None
-        # Connect signals to update dropdowns dynamically, passing current items on the window
+        # Connect signals to update dropdowns dynamically
         self.dropDownOpste1.currentIndexChanged.connect(lambda: update_dropdown(self, 1, 2, rolesOpsteDict, type='o'))
         self.dropDownOpste2.currentIndexChanged.connect(lambda: update_dropdown(self, 2, 3, rolesOpsteDict, type='o'))
         self.dropDownOpste3.currentIndexChanged.connect(lambda: update_dropdown(self, 3, 4, rolesOpsteDict, type='o'))
@@ -54,23 +55,70 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.dropDownProjekti1.currentIndexChanged.connect(lambda: update_dropdown(self, 1, 2, rolesProjektiDict, type='p'))
         self.dropDownProjekti2.currentIndexChanged.connect(lambda: update_dropdown(self, 2, 3, rolesProjektiDict, type='p'))
 
-        # Push botton listening
+        # Connect signals to enforce single selection
+        self.dropDownOpste1.currentIndexChanged.connect(lambda: self.disable_other_first_dropdowns('o'))
+        self.dropDownHR1.currentIndexChanged.connect(lambda: self.disable_other_first_dropdowns('h'))
+        self.dropDownProjekti1.currentIndexChanged.connect(lambda: self.disable_other_first_dropdowns('p'))
+
+        # Push button listeners
         self.upisiButtonLeft.clicked.connect(self.onUpisiButtonLeftClicked)
+        self.addButtonRight.clicked.connect(self.onAddButtonRIghtClicked)
+
+    def disable_other_first_dropdowns(self, changed):
+        dropdowns = {
+            "o": self.dropDownOpste1,
+            "h": self.dropDownHR1,
+            "p": self.dropDownProjekti1
+        }
+
+        # If a selection is made (not the empty/default item), disable the others
+        if dropdowns[changed].currentIndex() != 0:
+            for key, dropdown in dropdowns.items():
+                if key != changed:
+                    dropdown.setEnabled(False)
+        else:
+            # If user resets the selection to the first item, re-enable all
+            self.enable_all_first_dropdowns()
+
+    def enable_all_first_dropdowns(self):
+        self.dropDownOpste1.setEnabled(True)
+        self.dropDownHR1.setEnabled(True)
+        self.dropDownProjekti1.setEnabled(True)
 
     def proveri(self, batch, name):
-        return name and any(len(d) for d in batch)
-    
+        return name and any(len(d) > 2 for d in batch)
+    def upisani_poeni(self):
+        return window.dropDownHR3 or window.dropDownOpste4 or window.dropDownProjekti3
+    def return_names(self):
+        addedNames = self.allPersonsRight.toPlainText()
+        names = addedNames.split('\n')
+        return names     
     def onUpisiButtonLeftClicked(self):
         opsteData = get_data(window=window, type='o')
         HRData = get_data(window=window, type='h')
         projektiData = get_data(window=window, type='p')
-        name = window.nameLineEditLeft.text()
+        names = self.return_names()
         batch = [opsteData, HRData, projektiData]
-        check = self.proveri(batch, name)
-        if check:
-            upisi(batch, name)
+        check = self.proveri(batch, names)
+        if check and self.upisani_poeni():
+            upisi(batch, names)
+            QMessageBox.information(self, "Uspeh", "Bodovi upisani!")
+            window.allPersonsRight.clear()
         else:
-            print("Nesto fali :(")
+            # TODO
+            print("jeej")
+            # popup sa imenima i listom bodova
+        
+    def onAddButtonRIghtClicked(self):
+        names = self.return_names()
+        name = window.namesRightLineEdit.text()
+        if name in names_list and name not in names:
+            self.allPersonsRight.appendPlainText(name)
+            self.namesRightLineEdit.clear()
+        else:
+            QMessageBox.warning(self, "Upozorenje", "Ime ne postoji u bazi ili je već dodato")
+            self.namesRightLineEdit.clear()
+
     def go_to_spc(self):
         self.stackedWidget.setCurrentIndex(1)
 
@@ -79,6 +127,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.dropDownOpste1.addItems(rolesOpsteDict.keys())
         self.dropDownHR1.addItems(rolesHRDict.keys())
         self.dropDownProjekti1.addItems(rolesProjektiDict.keys())
+        self.enable_all_first_dropdowns()  # Re-enable all first dropdowns
         self.stackedWidget.setCurrentIndex(0)
 
 if __name__ == "__main__":
