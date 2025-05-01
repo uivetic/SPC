@@ -385,6 +385,19 @@
        <string>Upiši</string>
       </property>
      </widget>
+     <widget class="QPushButton" name="removeNameButton">
+      <property name="geometry">
+       <rect>
+        <x>470</x>
+        <y>520</y>
+        <width>101</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Obriši ime</string>
+      </property>
+     </widget>
     </widget>
    </widget>
   </widget>

@@ -1,26 +1,84 @@
 import sys
 from qt import Ui_MainWindow
-from PyQt5.QtWidgets import QApplication, QMainWindow, QCompleter, QMessageBox
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QCompleter, QMessageBox, QWidget, QVBoxLayout,
+    QHBoxLayout, QLabel, QComboBox, QPushButton, QScrollArea, QDialog
+)
 
 from rolesOpste import rolesOpsteDict
 from rolesHR import rolesHRDict
 from rolesProjekti import rolesProjektiDict
 
 from updateDropDown import update_dropdown
-from dropDownFunctions import clear_all_dropdowns, get_data
+from dropDownFunctions import clear_all_dropdowns, get_data, get_points_for_activity
 from upis import upisi
 
 """Sheet connection"""
 from sheetConnection import names_list
 
 
+class NameDropdownPopup(QDialog):
+    def __init__(self, names, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Name Dropdowns")
+        self.setMinimumSize(400, 300)
+
+        layout = QVBoxLayout()
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+
+        self.combo_boxes = []
+
+        selected_type = self.parent().get_selected_type()
+        points = []
+
+        if selected_type:
+            points = get_points_for_activity(window=self.parent(), type=selected_type)
+
+        for name in names:
+            row = QHBoxLayout()
+            label = QLabel(name)
+            combo = QComboBox()
+            #combo.addItem("")
+            combo.addItems(points)
+            row.addWidget(label)
+            row.addWidget(combo)
+            scroll_layout.addLayout(row)
+            self.combo_boxes.append(combo)
+
+        scroll.setWidget(scroll_content)
+        layout.addWidget(scroll)
+
+        button_row = QHBoxLayout()
+        button_row.addStretch()
+        upisi_button = QPushButton("Upiši")
+        upisi_button.clicked.connect(self.submit)
+        button_row.addWidget(upisi_button)
+        layout.addLayout(button_row)
+
+        self.setLayout(layout)
+
+    def submit(self):
+        values = [combo.currentText() for combo in self.combo_boxes]
+        if all(value.currentText != "" for value in self.combo_boxes):
+            values = [value.currentText() for value in self.combo_boxes]
+            self.accept()
+            return values
+        else:
+            QMessageBox.warning("Upozorenje", "Niste upisali poene za sve osobe!")
+            
+
+
 class MyWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
-        self.setupUi(self) 
+        self.setupUi(self)
         self.stackedWidget.setCurrentIndex(0)
         self.allPersonsRight.setReadOnly(True)
-        
+
         # Name completer
         completer = QCompleter(names_list)
         completer.setCaseSensitivity(False)
@@ -30,7 +88,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # Enter/exit push buttons
         self.spcPushButton.clicked.connect(self.go_to_spc)
         self.backButtonLeft.clicked.connect(self.go_to_mainMenu)
-        
+
         # Disable dropdowns initially
         self.dropDownOpste2.setEnabled(False)
         self.dropDownOpste3.setEnabled(False)
@@ -40,7 +98,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.dropDownProjekti2.setEnabled(False)
         self.dropDownProjekti3.setEnabled(False)
 
-        # Populate 1st dropdown for each category  
+        # Populate 1st dropdown for each category
         self.dropDownOpste1.addItems(rolesOpsteDict.keys())
         self.dropDownHR1.addItems(rolesHRDict.keys())
         self.dropDownProjekti1.addItems(rolesProjektiDict.keys())
@@ -63,6 +121,9 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # Push button listeners
         self.upisiButtonLeft.clicked.connect(self.onUpisiButtonLeftClicked)
         self.addButtonRight.clicked.connect(self.onAddButtonRIghtClicked)
+
+        # Deleting last added name or selected name
+        self.removeNameButton.clicked.connect(self.onRemoveNameClicked)
 
     def disable_other_first_dropdowns(self, changed):
         dropdowns = {
@@ -87,12 +148,15 @@ class MyWindow(QMainWindow, Ui_MainWindow):
 
     def proveri(self, batch, name):
         return name and any(len(d) > 2 for d in batch)
+
     def upisani_poeni(self):
-        return window.dropDownHR3 or window.dropDownOpste4 or window.dropDownProjekti3
+        return (window.dropDownHR3.isEnabled() and window.dropDownHR3.selected().currentText()) or (window.dropDownOpste4.isEnabled() and window.dropDownOpste4.currentText()) or (window.dropDownProjekti3.isEnabled() and window.dropDownProjekti3.currentText())
+
     def return_names(self):
         addedNames = self.allPersonsRight.toPlainText()
         names = addedNames.split('\n')
-        return names     
+        return names
+
     def onUpisiButtonLeftClicked(self):
         opsteData = get_data(window=window, type='o')
         HRData = get_data(window=window, type='h')
@@ -101,14 +165,38 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         batch = [opsteData, HRData, projektiData]
         check = self.proveri(batch, names)
         if check and self.upisani_poeni():
-            upisi(batch, names)
+            print(batch)
+            points = [b[-1] for b in batch if b]
+            pairs = [(name, point) for name in names for point in points]
+            upisi(batch, pairs)
             QMessageBox.information(self, "Uspeh", "Bodovi upisani!")
             window.allPersonsRight.clear()
         else:
-            # TODO
-            print("jeej")
-            # popup sa imenima i listom bodova
-        
+            if not self.allPersonsRight.toPlainText().strip() == '': 
+                popup = NameDropdownPopup(names, self)
+                popup.exec_()
+                points = popup.submit()
+                pairs = list(zip(names, points))
+                print(pairs)
+                upisi(batch, pairs)
+                QMessageBox.information(self, "Uspeh", "Bodovi upisani!")
+                window.allPersonsRight.clear()
+            else:
+                QMessageBox.warning(self, "Greška", "Dodaj ime za upis!")
+        clear_all_dropdowns(self)
+        self.dropDownOpste1.addItems(rolesOpsteDict.keys())
+        self.dropDownHR1.addItems(rolesHRDict.keys())
+        self.dropDownProjekti1.addItems(rolesProjektiDict.keys())
+    
+    def get_selected_type(self):
+        if self.dropDownOpste1.isEnabled():
+            return 'o'
+        if self.dropDownHR1.isEnabled():
+            return 'h'
+        if self.dropDownProjekti1.isEnabled():
+            return 'p'
+        return None
+
     def onAddButtonRIghtClicked(self):
         names = self.return_names()
         name = window.namesRightLineEdit.text()
@@ -118,17 +206,35 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         else:
             QMessageBox.warning(self, "Upozorenje", "Ime ne postoji u bazi ili je već dodato")
             self.namesRightLineEdit.clear()
+    
+    def onRemoveNameClicked(self):
+        cursor = self.allPersonsRight.textCursor()
+        cursor.select(cursor.LineUnderCursor)
+        selected_text = cursor.selectedText().strip()
+
+        names = self.return_names()
+
+        if selected_text:
+            # Remove selected name
+            names = [name for name in names if name.strip() != selected_text]
+        elif names:
+            # No selection: remove last
+            names.pop()
+
+        self.allPersonsRight.setPlainText('\n'.join(names))
 
     def go_to_spc(self):
         self.stackedWidget.setCurrentIndex(1)
 
     def go_to_mainMenu(self):
         clear_all_dropdowns(window)
+        self.namesRightLineEdit.clear()
         self.dropDownOpste1.addItems(rolesOpsteDict.keys())
         self.dropDownHR1.addItems(rolesHRDict.keys())
         self.dropDownProjekti1.addItems(rolesProjektiDict.keys())
-        self.enable_all_first_dropdowns()  # Re-enable all first dropdowns
+        self.enable_all_first_dropdowns()
         self.stackedWidget.setCurrentIndex(0)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

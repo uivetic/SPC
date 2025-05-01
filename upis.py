@@ -2,25 +2,33 @@ from sheetConnection import workbook, worksheet_list, normalize_name
 import gspread
 import re
 
-def upisi(items, names):
-    for name in names:
+def upisi(items, pairs):
+    print(pairs)
+    for name, points in pairs:
         for item in items:
             if len(item):
                 if item[0] == 'o':
                     sheet = workbook.worksheet("2025 Opšte")
                     resultO = find_and_write(item, sheet, name)
-                    print(resultO)
-                    update(resultO[0], resultO[1], resultO[-1], sheet)
+                    try:
+                        update(resultO[0], resultO[1], int(points), sheet)
+                    except:
+                        print(f"Greska prilikom upisivanja bodova! za osobu {name}!")
                 if item[0] == 'h':
                     sheet = workbook.worksheet("2025 HR")
                     resultH = find_and_write(item, sheet, name)
-                    print(resultH)
-                    update(resultH[0],resultH[1], resultH[-1], sheet)
+                    try:
+                        update(resultH[0], resultH[1], int(points), sheet)
+                    except:
+                        print(f"Greska prilikom upisivanja bodova! za osobu {name}!")
                 if item[0] == 'p':
                     sheet = workbook.worksheet("Projekti")
                     resultP = find_and_write(item, sheet, name)
-                    print(resultP)
-                    update(resultP[0], resultP[1], resultP[-1], sheet)
+                    try:
+                        update(resultP[0], resultP[1], int(points), sheet)
+                    except:
+                        print(f"Greska prilikom upisivanja bodova! za osobu {name}!")
+            
             
 def find_and_write(item, sheet, name):
     # Get all values from the sheet
@@ -83,8 +91,10 @@ def find_and_write(item, sheet, name):
 
     try:
         cell = sheet.find(name)
+        print(cell)
         red = cell.row
-        return (red, result[-1][1], int(item[-1]))
+        print(item)
+        return (red, result[-1][1])
     except:
         print("nije nasao")
         return None

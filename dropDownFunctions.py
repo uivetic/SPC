@@ -43,18 +43,20 @@ def clear_all_dropdowns_below(self, next_index, type):
             dropdown.setEnabled(False)
 
 def get_points_for_activity(window, type):
+    def get_nested_points(data_dict, level1_value, level2_value):
+        level1 = data_dict.get(level1_value, {})
+        if isinstance(level1, dict):
+            return numbers_list_string_list(window, level1.get(level2_value, []))
+        return []
+
     if type == 'o':
-        return numbers_list_string_list(window,
-            rolesOpsteDict[window.dropDownOpste1.currentText()]
-            .get(window.dropDownOpste2.currentText(), []))
+        return get_nested_points(rolesOpsteDict, window.dropDownOpste1.currentText(), window.dropDownOpste2.currentText())
     if type == 'h':
-        return numbers_list_string_list(window,
-            rolesHRDict[window.dropDownHR1.currentText()]
-            .get(window.dropDownHR2.currentText(), []))
+        return get_nested_points(rolesHRDict, window.dropDownHR1.currentText(), window.dropDownHR2.currentText())
     if type == 'p':
-        return numbers_list_string_list(window,
-            rolesProjektiDict[window.dropDownProjekti1.currentText()]
-            .get(window.dropDownProjekti2.currentText(), []))
+        return get_nested_points(rolesProjektiDict, window.dropDownProjekti1.currentText(), window.dropDownProjekti2.currentText())
+    
+    return []
     
 def clear_all_dropdowns(self, next_index = 0):
     types = ['o', 'h', 'p']
@@ -81,15 +83,15 @@ def get_data(window, type):
         if (
             window.dropDownOpste1.currentText() and
             window.dropDownOpste2.currentText() and
-            window.dropDownOpste3.currentText() and
-            window.dropDownOpste4.currentText()
+            window.dropDownOpste3.currentText() #and
+            #window.dropDownOpste4.currentText()
         ):
             data = [
                 'o',
                 window.dropDownOpste1.currentText(),
                 window.dropDownOpste2.currentText(),
-                window.dropDownOpste3.currentText(),
-                window.dropDownOpste4.currentText()
+                window.dropDownOpste3.currentText()
+                #window.dropDownOpste4.currentText()
                 ]
         
     if type == 'h':
