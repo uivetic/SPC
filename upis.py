@@ -3,7 +3,7 @@ import gspread
 import re
 
 def upisi(items, pairs):
-    print(pairs)
+    print('opet parovi = ', items, pairs)
     for name, points in pairs:
         for item in items:
             if len(item):

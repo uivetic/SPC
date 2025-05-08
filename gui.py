@@ -14,7 +14,7 @@ from dropDownFunctions import clear_all_dropdowns, get_data, get_points_for_acti
 from upis import upisi
 
 """Sheet connection"""
-from sheetConnection import names_list
+from sheetConnection import names_list, workbook
 
 
 class NameDropdownPopup(QDialog):
@@ -121,6 +121,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         # Push button listeners
         self.upisiButtonLeft.clicked.connect(self.onUpisiButtonLeftClicked)
         self.addButtonRight.clicked.connect(self.onAddButtonRIghtClicked)
+        self.showPointsButton.clicked.connect(self.onShowPointsButtonClicked)
 
         # Deleting last added name or selected name
         self.removeNameButton.clicked.connect(self.onRemoveNameClicked)
@@ -165,7 +166,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         batch = [opsteData, HRData, projektiData]
         check = self.proveri(batch, names)
         if check and self.upisani_poeni():
-            print(batch)
+            print("proslo provere, batch: ", batch)
             points = [b[-1] for b in batch if b]
             pairs = [(name, point) for name in names for point in points]
             upisi(batch, pairs)
@@ -177,7 +178,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
                 popup.exec_()
                 points = popup.submit()
                 pairs = list(zip(names, points))
-                print(pairs)
+                print('parovi = ', pairs)
                 upisi(batch, pairs)
                 QMessageBox.information(self, "Uspeh", "Bodovi upisani!")
                 window.allPersonsRight.clear()
@@ -234,7 +235,24 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.dropDownProjekti1.addItems(rolesProjektiDict.keys())
         self.enable_all_first_dropdowns()
         self.stackedWidget.setCurrentIndex(0)
-
+    
+    def onShowPointsButtonClicked(self):
+        name = self.nameLineEditLeft.text()
+        if name in names_list:
+            sheet = workbook.worksheet('ZBIR')
+            all_values = sheet.get_all_values()
+            print("da")
+            nameCell = sheet.find(name)
+            status = sheet.cell(nameCell.row, 11).value
+            ukupnoBodova = sheet.cell(nameCell.row, 10).value
+            HRBodovi = sheet.cell(nameCell.row, 6).value
+            opsteBodovi = sheet.cell(nameCell.row, 7).value
+            projektiBodovi = sheet.cell(nameCell.row, 8).value
+            window.statusLabel.setText(status)
+            window.bodoviLabel.setText(ukupnoBodova)
+            window.opsteLabel.setText(opsteBodovi)
+            window.projektiLabel.setText(projektiBodovi)
+            window.hrLabel.setText(HRBodovi)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -83,40 +83,39 @@ def get_data(window, type):
         if (
             window.dropDownOpste1.currentText() and
             window.dropDownOpste2.currentText() and
-            window.dropDownOpste3.currentText() #and
-            #window.dropDownOpste4.currentText()
+            window.dropDownOpste3.currentText()
         ):
             data = [
                 'o',
                 window.dropDownOpste1.currentText(),
                 window.dropDownOpste2.currentText(),
                 window.dropDownOpste3.currentText()
-                #window.dropDownOpste4.currentText()
                 ]
-        
+        if window.dropDownOpste4.currentText():
+            data.append(window.dropDownOpste4.currentText())  
     if type == 'h':
         if (
             window.dropDownHR1.currentText() and
-            window.dropDownHR2.currentText() and
-            window.dropDownHR3.currentText()
+            window.dropDownHR2.currentText()
         ):
             data = [
                 'h',
                 window.dropDownHR1.currentText(),
-                window.dropDownHR2.currentText(),
-                window.dropDownHR3.currentText()
+                window.dropDownHR2.currentText()
                 ]
+        if window.dropDownHR3.currentText():
+            data.append(window.dropDownHR3.currentText())
             
     if type == 'p':
         if (
             window.dropDownProjekti1.currentText() and
-            window.dropDownProjekti2.currentText() and
-            window.dropDownProjekti3.currentText()
+            window.dropDownProjekti2.currentText()
         ):
             data = [
                 'p',
                 window.dropDownProjekti1.currentText(),
-                window.dropDownProjekti2.currentText(),
-                window.dropDownProjekti3.currentText()
+                window.dropDownProjekti2.currentText()
                 ]
+        if window.dropDownProjekti3.currentText():
+            data.append(window.dropDownProjekti3.currentText())
     return data
