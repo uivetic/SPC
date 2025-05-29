@@ -1,67 +1,68 @@
-from sheetConnection import workbook, worksheet_list, normalize_name
+from sheetConnection import workbook, normalize_name
 import gspread
 import re
 
-def upisi(items, pairs):
-    print('opet parovi = ', items, pairs)
-    for name, points in pairs:
-        for item in items:
-            if len(item):
-                if item[0] == 'o':
-                    sheet = workbook.worksheet("2025 Opšte")
-                    resultO = find_and_write(item, sheet, name)
-                    try:
-                        update(resultO[0], resultO[1], int(points), sheet)
-                    except:
-                        print(f"Greska prilikom upisivanja bodova! za osobu {name}!")
-                if item[0] == 'h':
-                    sheet = workbook.worksheet("2025 HR")
-                    resultH = find_and_write(item, sheet, name)
-                    try:
-                        update(resultH[0], resultH[1], int(points), sheet)
-                    except:
-                        print(f"Greska prilikom upisivanja bodova! za osobu {name}!")
-                if item[0] == 'p':
-                    sheet = workbook.worksheet("Projekti")
-                    resultP = find_and_write(item, sheet, name)
-                    try:
-                        update(resultP[0], resultP[1], int(points), sheet)
-                    except:
-                        print(f"Greska prilikom upisivanja bodova! za osobu {name}!")
-            
-            
-def find_and_write(item, sheet, name):
-    # Get all values from the sheet
-    all_values = sheet.get_all_values()
-    result = []
+class SheetCache:
+    def __init__(self, sheet):
+        self.sheet = sheet
+        self.all_values = sheet.get_all_values()
+        self.name_to_row = {}
+        self.normalized_cells = []  # Cache of normalized words per cell for fast search
+        
+        # Build name->row index, assume names in column B (index 1)
+        for idx, row in enumerate(self.all_values[1:], start=2):
+            if len(row) > 1:
+                self.name_to_row[row[1]] = idx
 
-    # limit - the longest number of positions for a certain activity
-    # eg. JobFair -> 1. CT, 2. SR ..... 11. Logistics team
+        # Pre-normalize all cells once for fast searching
+        for row in self.all_values:
+            norm_row = []
+            for cell in row:
+                norm_row.append(set(re.split(r"[ /]+", normalize_name(cell))))
+            self.normalized_cells.append(norm_row)
+
+    def find_name_row(self, name):
+        return self.name_to_row.get(name)
+
+    def get_cell_value(self, row, col):
+        # row,col are 1-based; convert to 0-based for lists
+        try:
+            return int(self.all_values[row-1][col-1])
+        except (IndexError, ValueError):
+            return None
+
+    def batch_update_cells(self, updates):
+        # updates is list of gspread.Cell objects
+        if not updates:
+            return
+        self.sheet.update_cells(updates)
+
+def find_and_write_cached(item, sheet_cache, name):
+    all_values = sheet_cache.all_values
+    normalized_cells = sheet_cache.normalized_cells
+
     if item[1] == 'Aktivacija u godišnjim timovima':
         limit = 50
         dokle = 4
     else:
         limit = 11
         dokle = 3
-    
+
+    result = []
+
     for i in range(1, dokle):
         found = False
-
-        # Normalize the name and split it into words
-        # Use regex to split by spaces or slashes
-        # eg. items = ['p', 'BEST design WEEK', 'SR', '4']
-        # search_words = {'BEST', 'design', 'WEEK'}
         search_words = set(re.split(r"[ /]+", normalize_name(item[i])))
 
         if item[0] == 'p':
             start_value = 1 if i == 1 else 3
         else:
             start_value = 2 if i == 1 else 3
-        
-        for row_idx, row in enumerate(all_values[start_value:], start=start_value):
+
+        for row_idx in range(start_value, len(all_values)):
             if found:
                 break
-            
+
             if item[0] == 'o':
                 if result:
                     if i == 2:
@@ -74,41 +75,67 @@ def find_and_write(item, sheet, name):
                     start_col = 0
             else:
                 start_col = result[0][1] if result else 0
-            for col_idx, cell in enumerate(row[start_col:], start=start_col): 
-                # 11 je najduzi broj kolona za neki projekat
-                if start_col and col_idx > start_col+limit:
-                    break 
-                cell_words = set(re.split(r"[ /]+", normalize_name(cell)))
-                # if row_idx <=6:
-                    # print(search_words, col_idx, row_idx, cell_words)
-                if search_words.issubset(cell_words):
+
+            row_cells_norm = normalized_cells[row_idx]
+
+            for col_idx in range(start_col, min(start_col + limit + 1, len(row_cells_norm))):
+                if search_words.issubset(row_cells_norm[col_idx]):
                     result.append((row_idx, col_idx))
                     found = True
-                    # print('Pronađeno:', search_words, cell_words, col_idx, row_idx)
                     break
             if not found:
                 result.append("None")
 
-    try:
-        cell = sheet.find(name)
-        print(cell)
-        red = cell.row
-        print(item)
-        return (red, result[-1][1])
-    except:
-        print("nije nasao")
+    row = sheet_cache.find_name_row(name)
+    if row is None or not result or result[-1] == "None":
         return None
-def update(row, col, points, sheet):
-    print('red, kolona = ', row, col)
-    try:
-        cell_val = int(sheet.cell(row, col+1).value)
-    except:
-        cell_val = None
-    if cell_val:
-        value_to_update = str(cell_val+points)
-        sheet.update_cell(row, col+1, value_to_update)
     else:
-        print(points)
-        value_to_update = str(points)
-        print(value_to_update)
-        sheet.update_cell(row, col+1, value_to_update)
+        return (row, result[-1][1])
+
+def upisi(items, pairs):
+    print('opet parovi = ', items, pairs)
+
+    # Preload caches for all relevant sheets ONCE per call
+    sheet_names = {
+        'o': "2025 Opšte",
+        'h': "2025 HR",
+        'p': "Projekti"
+    }
+    sheet_caches = {k: SheetCache(workbook.worksheet(v)) for k,v in sheet_names.items()}
+
+    # Accumulate updates by sheet: {sheet_cache: [gspread.Cell, ...]}
+    updates_by_sheet = {cache: [] for cache in sheet_caches.values()}
+
+    for name, points in pairs:
+        points_int = None
+        try:
+            points_int = int(points)
+        except:
+            print(f"Invalid points for {name}: {points}")
+            continue
+        for item in items:
+            if len(item) == 0:
+                continue
+            key = item[0]
+            if key not in sheet_caches:
+                continue
+            sheet_cache = sheet_caches[key]
+
+            result = find_and_write_cached(item, sheet_cache, name)
+            if result is None:
+                print(f"Name {name} not found or item not matched in sheet {sheet_cache.sheet.title}")
+                continue
+            row, col = result
+            current_val = sheet_cache.get_cell_value(row, col+1) or 0  # col+1 to get "next" column value
+
+            new_val = current_val + points_int
+            cell = gspread.Cell(row, col+1, value=new_val)
+            updates_by_sheet[sheet_cache].append(cell)
+
+    # Batch update all sheets
+    for sheet_cache, cells in updates_by_sheet.items():
+        if cells:
+            try:
+                sheet_cache.batch_update_cells(cells)
+            except Exception as e:
+                print(f"Batch update failed on sheet {sheet_cache.sheet.title}: {e}")

@@ -1,4 +1,6 @@
 import sys
+from gspread.utils import rowcol_to_a1
+import gspread
 from qt import Ui_MainWindow
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QCompleter, QMessageBox, QWidget, QVBoxLayout,
@@ -70,14 +72,15 @@ class NameDropdownPopup(QDialog):
         else:
             QMessageBox.warning("Upozorenje", "Niste upisali poene za sve osobe!")
             
-
-
 class MyWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
         self.stackedWidget.setCurrentIndex(0)
         self.allPersonsRight.setReadOnly(True)
+
+        '''OVO SE POZIVA KAD JE POTREBNO UPDATE-OVATI UKUPAN BROJ BODOVA - KARTICA ZBIR'''
+        # self.updateTotalPoints()
 
         # Name completer
         completer = QCompleter(names_list)
@@ -241,18 +244,97 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         if name in names_list:
             sheet = workbook.worksheet('ZBIR')
             all_values = sheet.get_all_values()
-            print("da")
-            nameCell = sheet.find(name)
-            status = sheet.cell(nameCell.row, 11).value
-            ukupnoBodova = sheet.cell(nameCell.row, 10).value
-            HRBodovi = sheet.cell(nameCell.row, 6).value
-            opsteBodovi = sheet.cell(nameCell.row, 7).value
-            projektiBodovi = sheet.cell(nameCell.row, 8).value
+            
+            name_col_idx = 1 
+            
+            row_idx = None
+            for i, row in enumerate(all_values[1:], start=2):
+                if row[name_col_idx] == name:
+                    row_idx = i
+                    break
+            
+            if row_idx is None:
+                print("Name not found in sheet")
+                return
+            
+            row_data = all_values[row_idx - 1]
+            
+            HRBodovi = row_data[5]
+            opsteBodovi = row_data[6]
+            projektiBodovi = row_data[7]
+            ukupnoBodova = row_data[9]
+            status = row_data[10]
+            
             window.statusLabel.setText(status)
             window.bodoviLabel.setText(ukupnoBodova)
             window.opsteLabel.setText(opsteBodovi)
             window.projektiLabel.setText(projektiBodovi)
             window.hrLabel.setText(HRBodovi)
+
+    def updateTotalPoints(self):
+        zbirSheet = workbook.worksheet('ZBIR')
+        sheets = [
+            '2025 Opšte', '2024 Opšte', '2023 Opšte', '2022 Opšte', '2021 Opšte',
+            '2025 HR', '2024 HR', '2023 HR', '2022 HR', 'Projekti'
+        ]
+
+        updates = []
+
+        # Load full ZBIR sheet once (names in column 2)
+        zbir_data = zbirSheet.get_all_values()
+        zbir_name_to_row = {row[1]: idx + 1 for idx, row in enumerate(zbir_data) if len(row) >= 2 and row[1]}
+
+        # Load all other sheets completely (names in column 2)
+        sheet_data = {}
+        for sheet_name in sheets:
+            try:
+                sheet = workbook.worksheet(sheet_name)
+                data = sheet.get_all_values()
+                name_to_row = {row[1]: row for row in data if len(row) >= 2 and row[1]}
+                sheet_data[sheet_name] = name_to_row
+            except Exception as e:
+                print(f"Error loading sheet {sheet_name}: {e}")
+
+        for name in names_list:
+            try:
+                if name not in zbir_name_to_row:
+                    print(f"{name} not found in ZBIR sheet, skipping.")
+                    continue
+
+                zbir_row = zbir_name_to_row[name]
+                old_value = (
+                    float(zbir_data[zbir_row - 1][9]) 
+                    if len(zbir_data[zbir_row - 1]) >= 10 and zbir_data[zbir_row - 1][9] 
+                    else 0
+                )
+
+                totalPoints = 0
+                for sheet_name in sheets:
+                    row = sheet_data.get(sheet_name, {}).get(name)
+                    if row and len(row) >= 3 and row[2]:
+                        try:
+                            totalPoints += float(row[2])
+                        except ValueError:
+                            continue
+
+                # Prepare update
+                cell_range = rowcol_to_a1(zbir_row, 10)
+                updates.append({
+                    'range': cell_range,
+                    'values': [[totalPoints]]
+                })
+
+                print(f"{name}: old = {old_value}, new = {totalPoints}")
+
+            except Exception as e:
+                print(f"Error processing {name}: {e}")
+
+        # Batch update
+        if updates:
+            zbirSheet.batch_update(updates)
+            print(f"✅ Batch updated {len(updates)} users.")
+
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
