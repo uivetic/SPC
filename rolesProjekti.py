@@ -52,7 +52,7 @@ ProjektiKurs = {
 }
 
 ProjektiMW = {
-    'HR':                               [4, 8],
+    'CT':                               [4, 8],
     'Opšta logistika uoči projekta':    [0.5, 1, 1.5, 2, 2.5, 3]
 }
 

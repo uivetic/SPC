@@ -154,7 +154,7 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         return name and any(len(d) > 2 for d in batch)
 
     def upisani_poeni(self):
-        return (window.dropDownHR3.isEnabled() and window.dropDownHR3.selected().currentText()) or (window.dropDownOpste4.isEnabled() and window.dropDownOpste4.currentText()) or (window.dropDownProjekti3.isEnabled() and window.dropDownProjekti3.currentText())
+        return (window.dropDownHR3.isEnabled() and window.dropDownHR3.currentText()) or (window.dropDownOpste4.isEnabled() and window.dropDownOpste4.currentText()) or (window.dropDownProjekti3.isEnabled() and window.dropDownProjekti3.currentText())
 
     def return_names(self):
         addedNames = self.allPersonsRight.toPlainText()
