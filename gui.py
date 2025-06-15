@@ -1,4 +1,6 @@
 import sys
+import unicodedata
+import difflib
 from gspread.utils import rowcol_to_a1
 import gspread
 from qt import Ui_MainWindow
@@ -7,6 +9,8 @@ from PyQt5.QtWidgets import (
     QHBoxLayout, QLabel, QComboBox, QPushButton, QScrollArea, QDialog
 )
 
+from PyQt5.QtWidgets import QMainWindow, QCompleter
+from PyQt5.QtCore import QStringListModel, Qt, QTimer
 from rolesOpste import rolesOpsteDict
 from rolesHR import rolesHRDict
 from rolesProjekti import rolesProjektiDict
@@ -72,22 +76,82 @@ class NameDropdownPopup(QDialog):
         else:
             QMessageBox.warning("Upozorenje", "Niste upisali poene za sve osobe!")
             
+# class SubstringCompleter(QCompleter):
+#     def __init__(self, completions, parent=None):
+#         super().__init__(completions, parent)
+#         self.setCaseSensitivity(Qt.CaseInsensitive)
+#         self.setFilterMode(Qt.MatchContains)  # Match any part of the string
+#         self.setModel(QStringListModel(completions))
+def normalize_text(text):
+    text = text.lower()
+    replacements = {
+        'č': 'c',
+        'ć': 'c',
+        'đ': 'dj',
+        'š': 's',
+        'ž': 'z'
+    }
+    for src, target in replacements.items():
+        text = text.replace(src, target)
+    text = unicodedata.normalize('NFD', text)
+    return ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+
+# 2. Custom Completer
+class FuzzyCompleter(QCompleter):
+    def __init__(self, completions, parent=None):
+        super().__init__(completions, parent)
+        self.setCaseSensitivity(Qt.CaseInsensitive)
+        self.setFilterMode(Qt.MatchContains)
+
+        self.original_names = completions
+        self.normalized_names = [normalize_text(name) for name in completions]
+
+        self.model = QStringListModel()
+        self.setModel(self.model)
+
+    def updateModel(self, user_input):
+        norm_input = normalize_text(user_input)
+
+        # Substring matches
+        substring_matches = [
+            original for original, norm in zip(self.original_names, self.normalized_names)
+            if norm_input in norm
+        ]
+
+        # Fuzzy matches
+        fuzzy_matches = difflib.get_close_matches(norm_input, self.normalized_names, n=10, cutoff=0.6)
+        fuzzy_originals = [
+            original for original, norm in zip(self.original_names, self.normalized_names)
+            if norm in fuzzy_matches
+        ]
+
+        # Combine and deduplicate
+        combined = list(dict.fromkeys(substring_matches + fuzzy_originals))
+        self.model.setStringList(combined)
+
+    def splitPath(self, path):
+        self.updateModel(path)
+        return [path]
+
 class MyWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
         self.stackedWidget.setCurrentIndex(0)
         self.allPersonsRight.setReadOnly(True)
+        self.completer_activated = False
 
         '''OVO SE POZIVA KAD JE POTREBNO UPDATE-OVATI UKUPAN BROJ BODOVA - KARTICA ZBIR'''
         # self.updateTotalPoints()
 
         # Name completer
-        completer = QCompleter(names_list)
-        completer.setCaseSensitivity(False)
+        #completer = QCompleter(names_list)
+        #completer.setCaseSensitivity(False)
+        completer = FuzzyCompleter(names_list)
         self.nameLineEditLeft.setCompleter(completer)
         self.namesRightLineEdit.setCompleter(completer)
-
+        self.namesRightLineEdit.completer().activated.connect(self.onCompleterActivatedRight)
+        
         # Enter/exit push buttons
         self.spcPushButton.clicked.connect(self.go_to_spc)
         self.backButtonLeft.clicked.connect(self.go_to_mainMenu)
@@ -122,12 +186,49 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.dropDownProjekti1.currentIndexChanged.connect(lambda: self.disable_other_first_dropdowns('p'))
 
         # Push button listeners
+        #self.namesRightLineEdit.completer().activated.connect(self.onCompleterActivated)
         self.upisiButtonLeft.clicked.connect(self.onUpisiButtonLeftClicked)
         self.addButtonRight.clicked.connect(self.onAddButtonRIghtClicked)
+        self.namesRightLineEdit.update()
+        self.namesRightLineEdit.returnPressed.connect(self.onAddButtonRIghtClicked)
+        #self.namesRightLineEdit.update()
         self.showPointsButton.clicked.connect(self.onShowPointsButtonClicked)
 
         # Deleting last added name or selected name
         self.removeNameButton.clicked.connect(self.onRemoveNameClicked)
+
+    def clearLineEdit(self):
+        self.namesRightLineEdit.clear()
+        self.namesRightLineEdit.repaint()
+        self.namesRightLineEdit.update()
+        self.namesRightLineEdit.setFocus()
+
+    def onCompleterActivatedRight(self, text):
+        self.namesRightLineEdit.returnPressed.disconnect(self.onAddButtonRIghtClicked)
+
+        names = self.return_names()
+        if text in names_list and text not in names:
+            self.completer_activated = True
+            self.allPersonsRight.appendPlainText(text)
+            QTimer.singleShot(0, self.clearLineEdit)
+        else:
+            QTimer.singleShot(0, self.clearLineEdit)
+
+        self.namesRightLineEdit.returnPressed.connect(self.onAddButtonRIghtClicked)
+
+    def onAddButtonRIghtClicked(self):
+        if self.completer_activated:
+            self.completer_activated = False
+            return
+
+        names = self.return_names()
+        name = self.namesRightLineEdit.text()
+        if name in names_list and name not in names:
+            self.allPersonsRight.appendPlainText(name)
+            QTimer.singleShot(0, self.clearLineEdit)
+        else:
+            QTimer.singleShot(0, self.clearLineEdit)
+            QMessageBox.warning(self, "Upozorenje", "Ime ne postoji u bazi ili je već dodato")
 
     def disable_other_first_dropdowns(self, changed):
         dropdowns = {
@@ -200,16 +301,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         if self.dropDownProjekti1.isEnabled():
             return 'p'
         return None
-
-    def onAddButtonRIghtClicked(self):
-        names = self.return_names()
-        name = window.namesRightLineEdit.text()
-        if name in names_list and name not in names:
-            self.allPersonsRight.appendPlainText(name)
-            self.namesRightLineEdit.clear()
-        else:
-            QMessageBox.warning(self, "Upozorenje", "Ime ne postoji u bazi ili je već dodato")
-            self.namesRightLineEdit.clear()
     
     def onRemoveNameClicked(self):
         cursor = self.allPersonsRight.textCursor()
@@ -259,11 +350,11 @@ class MyWindow(QMainWindow, Ui_MainWindow):
             
             row_data = all_values[row_idx - 1]
             
-            HRBodovi = row_data[5]
-            opsteBodovi = row_data[6]
-            projektiBodovi = row_data[7]
-            ukupnoBodova = row_data[9]
-            status = row_data[10]
+            HRBodovi = row_data[2]
+            opsteBodovi = row_data[3]
+            projektiBodovi = row_data[4]
+            ukupnoBodova = row_data[6]
+            status = row_data[7]
             
             window.statusLabel.setText(status)
             window.bodoviLabel.setText(ukupnoBodova)

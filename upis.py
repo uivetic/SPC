@@ -37,7 +37,7 @@ def upisi(items, pairs):
 def find_and_write(item, sheet, all_values, name):
     result = []
 
-    if item[1] == 'Aktivacija u godišnjim timovima' or 'Radne grupe':
+    if item[1] == 'Aktivacija u godišnjim timovima' or item[1] == 'Radne grupe':
         limit = 31  # koliko polja na desno maksimalno moze da se trazi neka vrednost
         dokle = 4   # koliko itema se uzima
     else:
@@ -50,6 +50,7 @@ def find_and_write(item, sheet, all_values, name):
             start_value = 1 if i == 1 else 3
         else:
             start_value = 2 if i == 1 else 3 if i == 2 else 4
+            # od kog reda krece potraga
 
         for row_idx, row in enumerate(all_values[start_value:], start=start_value):
             if found:
@@ -65,15 +66,17 @@ def find_and_write(item, sheet, all_values, name):
                     start_col = 0
             else:
                 start_col = result[0][1] if result and result[0][1] is not None else 0
-            
             if item[1] == 'Radne grupe' and i == 2:
                 search_words = set(re.split(r"[ /]+", normalize_name(item[3])))
                 #ovih specijalnih slucajeva ima pun kurac
-            for col_idx, cell in enumerate(row[start_col:], start=start_col):
-                if start_col and col_idx > start_col + limit:
-                    break
+            if result == []:
+                limit = 1000
+            for col_idx, cell in enumerate(row[start_col:start_col + limit], start=start_col):
+                # if start_col and col_idx < start_col + limit:
+                #     break
                 cell_words = set(re.split(r"[ /]+", normalize_name(cell)))
                 if search_words.issubset(cell_words):
+                    print(start_col, col_idx, row_idx)
                     result.append((row_idx, col_idx))
                     found = True
                     break
