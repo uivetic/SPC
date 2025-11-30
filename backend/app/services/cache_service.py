@@ -17,7 +17,14 @@ class CacheService:
     
     def __init__(self):
         self._redis_client: Optional[redis.Redis] = None
-        self._enabled = REDIS_AVAILABLE and settings.REDIS_URL is not None
+        # Only enable Redis if URL is set and not pointing to localhost (for production)
+        redis_url = settings.REDIS_URL
+        self._enabled = (
+            REDIS_AVAILABLE 
+            and redis_url is not None 
+            and redis_url.strip() != ""
+            and not redis_url.startswith("redis://localhost")
+        )
     
     async def _get_client(self) -> Optional[redis.Redis]:
         """Get or initialize Redis client"""

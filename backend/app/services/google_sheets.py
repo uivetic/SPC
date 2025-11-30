@@ -335,13 +335,35 @@ class GoogleSheetsService:
             name_col_idx = 1
             row_idx = None
             
+            # Normalize the search name for comparison
+            normalized_search_name = normalize_name(name)
+            
+            # First, try to find exact match
             for i, row in enumerate(all_values[1:], start=2):
-                if len(row) > name_col_idx and row[name_col_idx] == name:
+                if len(row) > name_col_idx and row[name_col_idx].strip() == name.strip():
                     row_idx = i
                     break
             
+            # If not found, try normalized match
             if row_idx is None:
-                raise Exception(f"Osoba {name} nije pronađena u bazi")
+                for i, row in enumerate(all_values[1:], start=2):
+                    if len(row) > name_col_idx:
+                        normalized_row_name = normalize_name(row[name_col_idx])
+                        if normalized_row_name == normalized_search_name:
+                            row_idx = i
+                            break
+            
+            # If still not found, try substring match (like search_names does)
+            if row_idx is None:
+                for i, row in enumerate(all_values[1:], start=2):
+                    if len(row) > name_col_idx:
+                        normalized_row_name = normalize_name(row[name_col_idx])
+                        if normalized_search_name in normalized_row_name or normalized_row_name in normalized_search_name:
+                            row_idx = i
+                            break
+            
+            if row_idx is None:
+                raise Exception(f"Osoba '{name}' nije pronađena u bazi")
             
             row_data = all_values[row_idx - 1]
             
