@@ -2,6 +2,8 @@ from sheetConnection import workbook, worksheet_list, normalize_name
 import gspread
 import re
 
+# NOTE: Ova funkcija je sinhrona i blokira UI. 
+# Za asinhrono izvršavanje koristite PointsWriterWorker iz workers.py
 def upisi(items, pairs):
     print(pairs)
     print('opet parovi = ', items, pairs)
@@ -99,8 +101,9 @@ def update(row, col, points, sheet):
     print('red, kolona = ', row, col)
     try:
         cell_val = float(sheet.cell(row, col + 1).value)
-    except:
-        cell_val = None
+    except (ValueError, TypeError):
+        cell_val = 0.0
 
-    value_to_update = str(cell_val + points) if cell_val else str(points)
+    # Upisuj kao broj (float), ne kao string, da bi SUM funkcija radila
+    value_to_update = cell_val + points
     sheet.update_cell(row, col + 1, value_to_update)
