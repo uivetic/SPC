@@ -2,6 +2,7 @@
 import gspread
 import re
 import unicodedata
+import json
 from typing import List, Dict, Optional, Tuple
 from gspread.exceptions import WorksheetNotFound, APIError
 from gspread.utils import rowcol_to_a1
@@ -56,12 +57,31 @@ class GoogleSheetsService:
     async def _initialize_connection(self):
         """Initialize Google Sheets connection"""
         loop = asyncio.get_event_loop()
-        # Credentials.from_service_account_file takes file path and scopes as keyword args
+        
         def load_credentials():
+            # Try to load from environment variable first (for Render/cloud deployment)
+            credentials_json = os.getenv("GOOGLE_SHEETS_CREDENTIALS")
+            if credentials_json:
+                try:
+                    creds_dict = json.loads(credentials_json)
+                    return Credentials.from_service_account_info(
+                        creds_dict,
+                        scopes=settings.GOOGLE_SHEETS_SCOPES
+                    )
+                except (json.JSONDecodeError, ValueError) as e:
+                    raise ValueError(f"Invalid GOOGLE_SHEETS_CREDENTIALS JSON: {e}")
+            
+            # Fallback to file path (for local development)
+            if not os.path.exists(settings.GOOGLE_SHEETS_CREDENTIALS_PATH):
+                raise FileNotFoundError(
+                    f"Credentials file not found: {settings.GOOGLE_SHEETS_CREDENTIALS_PATH}. "
+                    "Either set GOOGLE_SHEETS_CREDENTIALS environment variable or provide a valid file path."
+                )
             return Credentials.from_service_account_file(
                 settings.GOOGLE_SHEETS_CREDENTIALS_PATH,
                 scopes=settings.GOOGLE_SHEETS_SCOPES
             )
+        
         creds = await loop.run_in_executor(None, load_credentials)
         client = await loop.run_in_executor(None, gspread.authorize, creds)
         self._client = client
