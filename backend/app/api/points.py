@@ -4,6 +4,7 @@ from app.models.points import PointsWriteRequest, PointsResponse, PointsWriteRes
 from app.models.user import User
 from app.services.google_sheets import GoogleSheetsService
 from app.services.auth_service import AuthService
+from app.dependencies import require_write_permission, require_view_permission
 
 router = APIRouter()
 sheets_service = GoogleSheetsService()
@@ -13,7 +14,7 @@ auth_service = AuthService()
 @router.post("/points/write", response_model=PointsWriteResponse)
 async def write_points(
     request: PointsWriteRequest,
-    current_user: User = Depends(auth_service.get_current_user)
+    current_user: User = Depends(require_write_permission)
 ):
     """Write points to Google Sheets"""
     try:
@@ -36,7 +37,7 @@ async def write_points(
 @router.get("/points/{name}", response_model=PointsResponse)
 async def get_points(
     name: str,
-    current_user: User = Depends(auth_service.get_current_user)
+    current_user: User = Depends(require_view_permission)
 ):
     """Get points for a specific person"""
     try:
@@ -51,7 +52,7 @@ async def get_points(
 
 @router.get("/points/all")
 async def get_all_points(
-    current_user: User = Depends(auth_service.get_current_user)
+    current_user: User = Depends(require_view_permission)
 ):
     """Get list of all people with their points summary"""
     try:

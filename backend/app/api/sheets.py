@@ -4,6 +4,7 @@ from app.models.activity import ActivityResponse, ActivityCategory
 from app.models.user import User
 from app.services.google_sheets import GoogleSheetsService
 from app.services.auth_service import AuthService
+from app.dependencies import require_view_permission, require_write_permission
 
 router = APIRouter()
 sheets_service = GoogleSheetsService()
@@ -12,7 +13,7 @@ auth_service = AuthService()
 
 @router.get("/sheets/activities", response_model=ActivityResponse)
 async def get_activities(
-    current_user: User = Depends(auth_service.get_current_user)
+    current_user: User = Depends(require_view_permission)
 ):
     """Get all activities organized by category"""
     try:
@@ -31,7 +32,7 @@ async def get_activities(
 
 @router.get("/sheets/projects")
 async def get_projects(
-    current_user: User = Depends(auth_service.get_current_user)
+    current_user: User = Depends(require_view_permission)
 ):
     """Get list of projects"""
     try:

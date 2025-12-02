@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     
     # API Settings
     API_V1_STR: str = "/api/v1"
-    PROJECT_NAME: str = "SPC Web App"
+    PROJECT_NAME: str = "Aplikacija za praćenje članstva"
     VERSION: str = "1.0.0"
     
     # CORS Settings
@@ -48,7 +48,17 @@ class Settings(BaseSettings):
         "GOOGLE_SHEETS_ID",
         "17yR3BJzslf4HLMGTDc0OvzRaY3t7VAZ1-CGx5GxQM_Q"
     )
-    GOOGLE_SHEETS_SCOPES: list[str] = ["https://www.googleapis.com/auth/spreadsheets"]
+    GOOGLE_SHEETS_SCOPES: list[str] = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/admin.directory.group.readonly"  # For Google Groups access
+    ]
+    
+    # Google Groups - mailing list for view access
+    GOOGLE_GROUP_EMAIL: str = os.getenv("GOOGLE_GROUP_EMAIL", "opsta@best.rs")
+    
+    # Admin email for domain-wide delegation (usually a super admin email)
+    # This is required for Admin Directory API to work with domain-wide delegation
+    GOOGLE_ADMIN_EMAIL: Optional[str] = os.getenv("GOOGLE_ADMIN_EMAIL", None)
     
     # Redis Settings (optional)
     REDIS_URL: Optional[str] = os.getenv("REDIS_URL", None)
@@ -56,6 +66,20 @@ class Settings(BaseSettings):
     
     # Frontend URL
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    
+    # Access Control - Email lists
+    ALLOWED_WRITE_EMAILS: list[str] = [
+        "hr@best.rs",
+        "vpp@best.rs",
+        "secretary@best.rs",
+        "fr@best.rs",
+        "president@best.rs",
+        "pr@best.rs",
+        "treasurer@best.rs",
+    ]
+    
+    # All users with @best.rs domain can view (or specific list if needed)
+    ALLOWED_VIEW_EMAILS: list[str] = []  # Empty means all @best.rs emails can view
     
     class Config:
         env_file = ".env"

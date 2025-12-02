@@ -4,6 +4,7 @@ from typing import List
 from app.models.user import User
 from app.services.google_sheets import GoogleSheetsService
 from app.services.auth_service import AuthService
+from app.dependencies import require_view_permission
 
 router = APIRouter()
 sheets_service = GoogleSheetsService()
@@ -12,7 +13,7 @@ auth_service = AuthService()
 
 @router.get("/users")
 async def get_users(
-    current_user: User = Depends(auth_service.get_current_user)
+    current_user: User = Depends(require_view_permission)
 ):
     """Get list of all users/members"""
     try:
@@ -28,7 +29,7 @@ async def get_users(
 @router.get("/users/search")
 async def search_users(
     q: str = Query(..., min_length=1, description="Search query"),
-    current_user: User = Depends(auth_service.get_current_user)
+    current_user: User = Depends(require_view_permission)
 ):
     """Search users with fuzzy matching"""
     try:
