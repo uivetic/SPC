@@ -11,4 +11,3 @@ export interface UserResponse {
   name: string;
   picture?: string;
 }
-

@@ -64,3 +64,33 @@ async def get_all_points(
             detail=f"Greška pri učitavanju podataka: {str(e)}"
         )
 
+
+@router.get("/points/candidates/young-member")
+async def get_young_member_candidates(
+    current_user: User = Depends(require_write_permission)
+):
+    """Get candidates for young member (> 7 points and status N/A)"""
+    try:
+        candidates = await sheets_service.get_candidates(min_points=7.0, required_status="N/A")
+        return {"candidates": candidates}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Greška pri učitavanju kandidata: {str(e)}"
+        )
+
+
+@router.get("/points/candidates/full-member")
+async def get_full_member_candidates(
+    current_user: User = Depends(require_write_permission)
+):
+    """Get candidates for full member (> 50 points and status BEBA)"""
+    try:
+        candidates = await sheets_service.get_candidates(min_points=50.0, required_status="BEBA")
+        return {"candidates": candidates}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Greška pri učitavanju kandidata: {str(e)}"
+        )
+

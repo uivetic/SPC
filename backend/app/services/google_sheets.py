@@ -371,8 +371,8 @@ class GoogleSheetsService:
                 'hr': row_data[2] if len(row_data) > 2 else "0",
                 'opste': row_data[3] if len(row_data) > 3 else "0",
                 'projekti': row_data[4] if len(row_data) > 4 else "0",
-                'ukupno': row_data[5] if len(row_data) > 5 else "0",  # Column F: TOTAL
-                'status': row_data[6] if len(row_data) > 6 else ""    # Column G: STATUS
+                'ukupno': row_data[5] if len(row_data) > 5 else "0",  # Column F: TOTAL (index 5)
+                'status': row_data[6] if len(row_data) > 6 else ""    # Column G: STATUS (index 6)
             }
             
             # Cache the result
@@ -398,6 +398,106 @@ class GoogleSheetsService:
                 continue
         
         return people
+    
+    async def get_candidates(self, min_points: float, required_status: str = None) -> List[Dict[str, str]]:
+        """Get candidates with points above minimum threshold and optional status filter"""
+        workbook = await self._get_workbook()
+        loop = asyncio.get_event_loop()
+        
+        try:
+            sheet = await loop.run_in_executor(None, workbook.worksheet, 'ZBIR')
+            all_values = await loop.run_in_executor(None, sheet.get_all_values)
+            
+            print(f"\n=== GET_CANDIDATES DEBUG ===")
+            print(f"Min points: {min_points}")
+            print(f"Required status: {required_status}")
+            print(f"Total rows: {len(all_values)}")
+            
+            # Print first 3 data rows for debugging
+            print("\nFirst 3 data rows:")
+            for i in range(1, min(4, len(all_values))):
+                row = all_values[i]
+                print(f"Row {i}: len={len(row)}")
+                if len(row) > 7:
+                    print(f"  Name (idx 1): {row[1]}")
+                    print(f"  Ukupno (idx 6): {row[6]}")
+                    print(f"  Status (idx 7): {row[7]}")
+            
+            candidates = []
+            checked_count = 0
+            points_pass = 0
+            status_pass = 0
+            
+            # Skip header row (index 0), start from row 1
+            for row_data in all_values[1:]:
+                if len(row_data) < 2:  # Skip empty rows
+                    continue
+                
+                name = row_data[1].strip() if len(row_data) > 1 else ""
+                if not name:  # Skip rows without name
+                    continue
+                
+                checked_count += 1
+                
+                # Get ukupno points from column 5 (index 5, which is column F)
+                try:
+                    ukupno_str = row_data[5] if len(row_data) > 5 else "0"
+                    # Remove any non-numeric characters except decimal point
+                    ukupno_str = ukupno_str.replace(",", ".").strip()
+                    ukupno_points = float(ukupno_str) if ukupno_str else 0.0
+                except (ValueError, IndexError) as e:
+                    print(f"Error parsing points for {name}: {e}")
+                    ukupno_points = 0.0
+                
+                # Get status from column 6 (index 6, which is column G)
+                status = row_data[6].strip() if len(row_data) > 6 else ""
+                
+                # Check if points are above threshold
+                if ukupno_points > min_points:
+                    points_pass += 1
+                    
+                    # If status filter is specified, check it (case-insensitive)
+                    if required_status is not None:
+                        # Handle "N/A" as empty string (since empty cells read as "")
+                        status_matches = False
+                        if required_status.upper() == "N/A":
+                            # For N/A, accept empty string, "N/A", or whitespace
+                            status_matches = (not status or status.upper() == "N/A")
+                        else:
+                            # For other statuses, do exact match
+                            status_matches = (status.upper() == required_status.upper())
+                        
+                        if status_matches:
+                            status_pass += 1
+                            candidates.append({
+                                "name": name,
+                                "ukupno": str(ukupno_points),
+                                "status": status if status else "N/A"
+                            })
+                        else:
+                            if checked_count <= 5:  # Log first 5 failures
+                                print(f"  Status mismatch: {name} has '{status}' (expected '{required_status}')")
+                    else:
+                        candidates.append({
+                            "name": name,
+                            "ukupno": str(ukupno_points),
+                            "status": status
+                        })
+            
+            print(f"\nStats:")
+            print(f"  Checked: {checked_count}")
+            print(f"  Points > {min_points}: {points_pass}")
+            print(f"  Status match: {status_pass}")
+            print(f"  Final candidates: {len(candidates)}")
+            print("=========================\n")
+            
+            # Sort by points descending
+            candidates.sort(key=lambda x: float(x["ukupno"]), reverse=True)
+            
+            return candidates
+        except Exception as e:
+            print(f"Exception in get_candidates: {e}")
+            raise Exception(f"Greška pri čitanju kandidata: {str(e)}")
     
     async def get_activities(self) -> List[Dict]:
         """Get all activities organized by category"""
