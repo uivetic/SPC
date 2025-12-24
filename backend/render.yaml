@@ -11,9 +11,15 @@ services:
         sync: false
       - key: JWT_SECRET_KEY
         generateValue: true
+      - key: GOOGLE_SHEETS_CREDENTIALS
+        sync: false
       - key: GOOGLE_SHEETS_CREDENTIALS_PATH
         sync: false
       - key: GOOGLE_SHEETS_ID
+        sync: false
+      - key: GOOGLE_ADMIN_EMAIL
+        sync: false
+      - key: GOOGLE_GROUP_EMAIL
         sync: false
       - key: FRONTEND_URL
         sync: false

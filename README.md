@@ -36,33 +36,73 @@ SPC/
 - Google Service Account sa pristupom Google Sheets
 - Google Workspace Admin Console pristup (za Domain-Wide Delegation)
 
-### Backend Setup
+### Lokalno Pokretanje
+
+#### Opcija 1: Automatski (preporučeno)
 
 ```bash
+./start.sh
+```
+
+Ova skripta automatski:
+- Aktivira virtualno okruženje
+- Proverava i instalira pakete ako je potrebno
+- Pokreće backend na `http://localhost:8000`
+- Pokreće frontend na `http://localhost:5173`
+
+#### Opcija 2: Ručno
+
+**1. Backend Setup**
+
+```bash
+# Aktiviraj virtualno okruženje
+source venv/bin/activate
+
+# Instaliraj pakete (samo prvi put)
 cd backend
-source ../venv/bin/activate  # ili python3 -m venv venv
 pip install -r requirements.txt
-cp .env.example .env
-# Popuni .env fajl sa svojim vrednostima
+
+# Proveri da li .env postoji i ima sve vrednosti
+# Proveri da li service-account-key.json postoji
+
+# Pokreni backend server
 python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Frontend Setup
+Backend će biti dostupan na `http://localhost:8000`
+- API dokumentacija: `http://localhost:8000/docs`
+
+**2. Frontend Setup** (u novom terminalu)
 
 ```bash
 cd frontend
+
+# Instaliraj pakete (samo prvi put)
 npm install
-cp .env.example .env.local
-# Popuni .env.local fajl
+
+# Proveri da li .env.local postoji (za lokalno razvijanje)
+# Ako ne postoji, kopiraj .env.example ili kreiraj .env.local sa:
+# VITE_API_URL=http://localhost:8000
+# VITE_GOOGLE_CLIENT_ID=your-client-id
+
+# Pokreni frontend server
 npm run dev
 ```
 
-Aplikacija će biti dostupna na `http://localhost:5173`
+Frontend će biti dostupan na `http://localhost:5173`
+
+### Napomena za Lokalno Razvijanje
+
+- **Frontend**: Koristi `frontend/.env.local` za lokalno razvijanje (već kreiran)
+  - `VITE_API_URL=http://localhost:8000` - lokalni backend
+- **Produkcija**: Koristi `frontend/.env` za produkciju
+  - `VITE_API_URL=https://spc-kpob.onrender.com` - produkcijski backend
 
 ## Environment Variables
 
 ### Backend (.env)
 
+**Za lokalno razvijanje:**
 ```env
 GOOGLE_CLIENT_ID=your-client-id
 GOOGLE_CLIENT_SECRET=your-client-secret
@@ -75,6 +115,10 @@ GOOGLE_GROUP_EMAIL=opsta@best.rs
 FRONTEND_URL=http://localhost:5173
 REDIS_URL=redis://localhost:6379/0  # Opciono
 ```
+
+**Za produkciju (Render):**
+- `GOOGLE_SHEETS_CREDENTIALS` - Service Account JSON kao string (umesto `GOOGLE_SHEETS_CREDENTIALS_PATH`)
+- Ostale varijable su iste
 
 ### Frontend (.env.local)
 
@@ -117,8 +161,34 @@ VITE_GOOGLE_CLIENT_ID=your-client-id
 
 1. Push kod na GitHub
 2. Konektuj GitHub repo sa Render
-3. Postavi environment variables
-4. Set `GOOGLE_SHEETS_CREDENTIALS` kao JSON string (koristi `convert_credentials.py`)
+3. Postavi environment variables:
+   - `GOOGLE_CLIENT_ID` - OAuth Client ID
+   - `GOOGLE_CLIENT_SECRET` - OAuth Client Secret
+   - `JWT_SECRET_KEY` - Generiše se automatski ili postavi svoj
+   - `GOOGLE_SHEETS_CREDENTIALS` - **VAŽNO**: Service Account JSON kao string
+   - `GOOGLE_SHEETS_ID` - Google Sheets ID
+   - `GOOGLE_ADMIN_EMAIL` - `secretary@best.rs`
+   - `GOOGLE_GROUP_EMAIL` - `opsta@best.rs`
+   - `FRONTEND_URL` - Frontend URL (npr. `https://your-app.vercel.app`)
+   - `REDIS_URL` - Opciono, ako koristiš Redis
+
+**Konverzija Service Account JSON u string:**
+
+```bash
+# Opcija 1: Koristi skriptu (preporučeno)
+cd backend
+python3 convert_credentials.py service-account-key.json
+
+# Opcija 2: Koristi Python direktno
+python3 -c "import json; print(json.dumps(json.load(open('backend/service-account-key.json'))))"
+
+# Opcija 3: Koristi jq (ako je instaliran)
+cat backend/service-account-key.json | jq -c
+```
+
+Kopiraj rezultat i postavi kao `GOOGLE_SHEETS_CREDENTIALS` environment variable na Render-u.
+
+**⚠️ VAŽNO**: Na Render-u, `GOOGLE_SHEETS_CREDENTIALS` mora biti postavljen kao environment variable, NE kao fajl. Aplikacija će automatski koristiti environment variable ako postoji, inače će pokušati da učita fajl (samo za lokalno razvijanje).
 
 ### Frontend (Vercel)
 

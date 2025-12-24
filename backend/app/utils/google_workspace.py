@@ -27,12 +27,22 @@ def get_google_admin_service():
     Delegira pristup kao secretary@best.rs
     Vraća Google Admin SDK servis
     """
-    # Učitaj service account JSON
-    if not os.path.exists(SERVICE_ACCOUNT_FILE):
-        raise FileNotFoundError(f"Service account file not found: {SERVICE_ACCOUNT_FILE}")
-    
-    with open(SERVICE_ACCOUNT_FILE, 'r') as f:
-        service_account_info = json.load(f)
+    # Try to load from environment variable first (for Render/cloud deployment)
+    credentials_json = os.getenv("GOOGLE_SHEETS_CREDENTIALS")
+    if credentials_json:
+        try:
+            service_account_info = json.loads(credentials_json)
+        except (json.JSONDecodeError, ValueError) as e:
+            raise ValueError(f"Invalid GOOGLE_SHEETS_CREDENTIALS JSON: {e}")
+    else:
+        # Fallback to file path (for local development)
+        if not os.path.exists(SERVICE_ACCOUNT_FILE):
+            raise FileNotFoundError(
+                f"Service account file not found: {SERVICE_ACCOUNT_FILE}. "
+                "Either set GOOGLE_SHEETS_CREDENTIALS environment variable or provide a valid file path."
+            )
+        with open(SERVICE_ACCOUNT_FILE, 'r') as f:
+            service_account_info = json.load(f)
     
     # Kreiraj credentials sa domain-wide delegation
     credentials = service_account.Credentials.from_service_account_info(
