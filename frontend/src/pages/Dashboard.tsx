@@ -8,7 +8,7 @@ import { CandidatesModal } from "@/components/candidates/CandidatesModal";
 import { useYoungMemberCandidates, useFullMemberCandidates } from "@/hooks/useCandidates";
 
 export const Dashboard = () => {
-  const { user, logout, canWritePoints, canViewPoints } = useAuth();
+  const { user, logout, canWritePoints, canViewPoints, isLoading, permissionsError } = useAuth();
   const [showYoungModal, setShowYoungModal] = useState(false);
   const [showFullModal, setShowFullModal] = useState(false);
   
@@ -133,12 +133,25 @@ export const Dashboard = () => {
             </>
           )}
 
-          {!canWritePoints && !canViewPoints && (
+          {!isLoading && !canWritePoints && !canViewPoints && (
             <Card>
               <CardHeader>
                 <CardTitle>Nemate pristup</CardTitle>
                 <CardDescription>
-                  Vaš email nema dozvolu za pristup aplikaciji.
+                  {permissionsError 
+                    ? `Greška pri proveri pristupa: ${permissionsError instanceof Error ? permissionsError.message : 'Nepoznata greška'}`
+                    : "Vaš email nema dozvolu za pristup aplikaciji."}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
+          
+          {isLoading && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Učitavanje...</CardTitle>
+                <CardDescription>
+                  Proveravam dozvole za pristup...
                 </CardDescription>
               </CardHeader>
             </Card>

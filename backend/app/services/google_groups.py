@@ -1,8 +1,9 @@
 """Google Groups service for checking group membership"""
-import httpx
 from typing import Optional
 from app.config import settings
 from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 import json
 import os
 import asyncio
@@ -50,9 +51,9 @@ class GoogleGroupsService:
         
         self._credentials = await loop.run_in_executor(None, load_credentials)
     
-    async def is_member_of_group(self, email: str, group_email: Optional[str] = None) -> bool:
+    async def _get_admin_service(self):
         """
-        Check if email is a member of Google Group using Admin Directory API
+        Get Google Admin SDK service instance with domain-wide delegation
         
         Note: This requires:
         1. Domain-Wide Delegation enabled in Google Cloud Console
@@ -60,6 +61,85 @@ class GoogleGroupsService:
            https://www.googleapis.com/auth/admin.directory.group.readonly
         3. Admin API enabled in Google Cloud Console
         4. GOOGLE_ADMIN_EMAIL set in environment variables (super admin email)
+        """
+        if not settings.GOOGLE_ADMIN_EMAIL:
+            raise ValueError("GOOGLE_ADMIN_EMAIL not set, cannot use domain-wide delegation")
+        
+        base_creds = await self._get_credentials()
+        
+        # Use with_subject to impersonate the admin user (domain-wide delegation)
+        delegated_creds = base_creds.with_subject(settings.GOOGLE_ADMIN_EMAIL)
+        
+        # Build Admin SDK service
+        loop = asyncio.get_event_loop()
+        def build_service():
+            try:
+                # Try to refresh credentials to get access token
+                from google.auth.transport.requests import Request
+                request = Request()
+                delegated_creds.refresh(request)
+                return build('admin', 'directory_v1', credentials=delegated_creds, cache_discovery=False)
+            except Exception as e:
+                error_msg = str(e)
+                if 'unauthorized_client' in error_msg.lower():
+                    # Get Client ID from credentials
+                    client_id = "N/A"
+                    try:
+                        creds_info = base_creds._service_account_email
+                        # Try to get client_id from service account info
+                        if hasattr(base_creds, '_service_account_email'):
+                            # Read from file if available
+                            import json
+                            if os.path.exists(settings.GOOGLE_SHEETS_CREDENTIALS_PATH):
+                                with open(settings.GOOGLE_SHEETS_CREDENTIALS_PATH, 'r') as f:
+                                    sa_info = json.load(f)
+                                    client_id = sa_info.get('client_id', 'N/A')
+                    except:
+                        pass
+                    
+                    print("\n" + "="*80)
+                    print("ERROR: Domain-Wide Delegation not properly configured!")
+                    print("="*80)
+                    print("\nService Account Info:")
+                    print(f"  Email: spc-python@sistem-pracenja-clanstva.iam.gserviceaccount.com")
+                    print(f"  Client ID: {client_id}")
+                    print(f"  Admin Email: {settings.GOOGLE_ADMIN_EMAIL}")
+                    print("\nTo fix this, you need to:")
+                    print("\n1. Enable Domain-Wide Delegation in Google Cloud Console:")
+                    print("   Direct link: https://console.cloud.google.com/iam-admin/serviceaccounts")
+                    print("   - Select project: sistem-pracenja-clanstva")
+                    print("   - Find service account: spc-python@sistem-pracenja-clanstva.iam.gserviceaccount.com")
+                    print("   - Click on the service account email")
+                    print("   - Go to 'Advanced settings' > 'Domain-wide delegation'")
+                    print("   - Enable 'Enable Google Workspace Domain-wide Delegation'")
+                    print(f"   - Note the Client ID: {client_id}")
+                    print("\n2. Add Service Account to Google Workspace Admin Console:")
+                    print("   Direct link: https://admin.google.com/ac/owl/domainwidedelegation")
+                    print("   - Login with super admin account (e.g., secretary@best.rs)")
+                    print("   - Click 'Add new'")
+                    print(f"   - Enter Client ID: {client_id}")
+                    print("   - Add OAuth scope (EXACTLY as shown, copy-paste this):")
+                    print("     https://www.googleapis.com/auth/admin.directory.group.readonly")
+                    print("   - Click 'Authorize'")
+                    print("\n3. Enable Admin SDK API:")
+                    print("   Direct link: https://console.cloud.google.com/apis/library/admin.googleapis.com")
+                    print("   - Make sure project 'sistem-pracenja-clanstva' is selected")
+                    print("   - Click 'Enable'")
+                    print("\n4. Verify Configuration:")
+                    print(f"   - GOOGLE_ADMIN_EMAIL: {settings.GOOGLE_ADMIN_EMAIL}")
+                    print("   - This email MUST be a super admin in Google Workspace")
+                    print("\n5. Wait a few minutes after making changes (propagation delay)")
+                    print("\n6. Restart the backend server")
+                    print("="*80 + "\n")
+                raise
+        
+        return await loop.run_in_executor(None, build_service)
+    
+    async def is_member_of_group(self, email: str, group_email: Optional[str] = None) -> bool:
+        """
+        Check if email is a member of Google Group using Admin Directory API
+        
+        Uses the hasMember method which is more efficient than checking membership directly.
         """
         group_email = group_email or settings.GOOGLE_GROUP_EMAIL
         
@@ -70,53 +150,35 @@ class GoogleGroupsService:
             return cached_result
         
         try:
-            base_creds = await self._get_credentials()
-            
-            # For domain-wide delegation, we need to use with_subject
-            # This allows the service account to act on behalf of the admin user
+            # If no admin email, fallback to @best.rs check
             if not settings.GOOGLE_ADMIN_EMAIL:
                 print("GOOGLE_ADMIN_EMAIL not set, cannot use domain-wide delegation")
-                # Fallback: allow @best.rs emails
                 return email.lower().endswith("@best.rs")
             
-            # Create delegated credentials with admin email using with_subject
-            from google.auth.transport.requests import Request
+            # Get Admin SDK service
+            service = await self._get_admin_service()
             
-            # Use with_subject to impersonate the admin user
-            delegated_creds = base_creds.with_subject(settings.GOOGLE_ADMIN_EMAIL)
+            # Use hasMember method to check membership (more efficient)
+            loop = asyncio.get_event_loop()
+            def check_membership():
+                try:
+                    result = service.members().hasMember(
+                        groupKey=group_email,
+                        memberKey=email
+                    ).execute()
+                    return result.get('isMember', False)
+                except HttpError as e:
+                    if e.resp.status == 404:
+                        # Group or member doesn't exist
+                        return False
+                    raise
             
-            # Refresh to get access token
-            request = Request()
-            delegated_creds.refresh(request)
-            access_token = delegated_creds.token
+            is_member = await loop.run_in_executor(None, check_membership)
             
-            if not access_token:
-                raise ValueError("Failed to get access token with domain-wide delegation")
+            # Cache the result
+            await cache_service.set(cache_key, is_member, ttl=3600)  # Cache for 1 hour
             
-            # Use Google Admin Directory API to check group membership
-            # Format: GET /admin/directory/v1/groups/{groupKey}/members/{memberKey}
-            api_url = f"https://admin.googleapis.com/admin/directory/v1/groups/{group_email}/members/{email}"
-            
-            async with httpx.AsyncClient() as client:
-                headers = {
-                    "Authorization": f"Bearer {access_token}",
-                    "Content-Type": "application/json"
-                }
-                response = await client.get(api_url, headers=headers, timeout=10.0)
-                
-                if response.status_code == 200:
-                    # User is a member
-                    await cache_service.set(cache_key, True, ttl=3600)  # Cache for 1 hour
-                    return True
-                elif response.status_code == 404:
-                    # User is not a member
-                    await cache_service.set(cache_key, False, ttl=3600)
-                    return False
-                else:
-                    # API error - log and fall back
-                    print(f"Google Groups API error: {response.status_code} - {response.text}")
-                    # Fallback: allow @best.rs emails
-                    return email.lower().endswith("@best.rs")
+            return is_member
                     
         except Exception as e:
             # If API fails, fall back to checking if email ends with @best.rs

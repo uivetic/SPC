@@ -52,8 +52,13 @@ build/
 
 # Credentials
 credentials.json
+service-account-key.json
+*-key.json
 *.pem
 *.key
+# Allow package.json files but ignore other JSON files in backend
+!**/package.json
+!**/package-lock.json
 
 # OS
 .DS_Store
