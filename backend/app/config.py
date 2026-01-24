@@ -60,6 +60,7 @@ class Settings(BaseSettings):
         "president@best.rs",
         "pr@best.rs",
         "treasurer@best.rs",
+        "uros.ivetic.best@gmail.com"
     ]
     
     ALLOWED_VIEW_EMAILS: list[str] = []
