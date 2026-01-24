@@ -35,8 +35,8 @@ HRPrisustvoNaSSC = {
 }
 
 HRMentorstvo = {
-    'Mart':     [3],
-    'Oktobar':  [3]
+    'Mart':     [0, 1, 2, 3, 4],
+    'Oktobar':  [0, 1, 2, 3, 4]
 }
 
 HROpstaLogistika = {

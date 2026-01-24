@@ -6,7 +6,7 @@ from pydantic import field_validator
 
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
-    PROJECT_NAME: str = "Aplikacija za praćenje članstva"
+    PROJECT_NAME: str = "SPČ aplikacija"
     VERSION: str = "1.0.0"
     
     BACKEND_CORS_ORIGINS: Union[str, list[str]] = [

@@ -1,8 +1,8 @@
 # OPSTE
 
 opsteDelegatNaGA = {
-    'sGA':[5],
-    'aGA':[5]
+    'sGA':[1, 2, 3, 4, 5, 6, 7],
+    'aGA':[1, 2, 3, 4, 5, 6, 7]
 }
 opsteDelegatNaRM = {
     'sRM' : [3],
@@ -49,11 +49,11 @@ opsteAktivnostUGodisnjim = {
 }
 
 opsteRadneGrupe = {
-    'Radne grupe':[3]
+    'Radne grupe':[0, 1, 2, 3, 4, 5]
 }
 opsteMandati = {
-    'Bord':         [24],
-    'Menadžment':   [8],
+    'Bord':         [27],
+    'Menadžment':   [12],
     'NO':           [7] 
 }
 
