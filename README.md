@@ -256,6 +256,4 @@ API dokumentacija: `http://localhost:8000/docs`
 - Proveri da li je OAuth scope tačno: `https://www.googleapis.com/auth/admin.directory.group.readonly`
 - Proveri da li je `GOOGLE_ADMIN_EMAIL` super admin email
 
-### CORS greške
-- Proveri da li je `FRONTEND_URL` tačno postavljen u backend `.env`
-- Proveri da li je `BACKEND_CORS_ORIGINS` sadrži frontend URL
+# Test
