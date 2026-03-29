@@ -16,7 +16,6 @@ async def write_points(
     request: PointsWriteRequest,
     current_user: User = Depends(require_write_permission)
 ):
-    """Write points to Google Sheets"""
     try:
         result = await sheets_service.write_points(
             batch=request.batch,
