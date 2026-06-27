@@ -79,49 +79,32 @@ def is_user_in_group(user_email: str) -> bool:
     
     try:
         service = get_google_admin_service()
-        
-        # Za vanjske email-ove (Gmail) koristi list() metodu jer hasMember() ne radi sa vanjskim email-ovima
-        # Za @best.rs email-ove možemo koristiti hasMember(), ali za vanjske moramo list()
-        members_response = service.members().list(
-            groupKey=GROUP_EMAIL
+        print(f"[GROUP CHECK] Checking if {user_email} is in {GROUP_EMAIL}")
+
+        # Direct single-member lookup — avoids pagination issues with list()
+        # Returns member info if found, raises 404 HttpError if not a member.
+        service.members().get(
+            groupKey=GROUP_EMAIL,
+            memberKey=user_email
         ).execute()
-        
-        members = members_response.get('members', [])
-        
-        # Proveri da li je email u listi članova
-        for member in members:
-            if member.get('email', '').lower() == user_email.lower():
-                return True
-        
-        return False
-        
+
+        print(f"[GROUP CHECK] {user_email} IS a member")
+        return True
+
     except HttpError as e:
-        error_details = {
-            "status": e.resp.status,
-            "reason": e.resp.reason,
-            "message": str(e)
-        }
         if e.resp.status == 404:
-            # Grupa ili korisnik ne postoji
-            print(f"404 Error: Group or member not found. Details: {error_details}")
+            print(f"[GROUP CHECK] {user_email} is NOT a member (404)")
             return False
         elif e.resp.status == 403:
-            # Nema dozvolu - domain-wide delegation nije podešen
-            print(f"ERROR: Domain-Wide Delegation not configured. Status: {e.resp.status}")
-            print(f"Service Account Client ID: 109553929845433765473")
-            print(f"Admin Email: {ADMIN_EMAIL}")
-            print(f"OAuth Scope: {SCOPES[0]}")
-            print(f"Error details: {error_details}")
-            raise Exception(f"Domain-Wide Delegation error: {error_details}")
+            print(f"[GROUP CHECK] 403 from Google Admin API — Domain-Wide Delegation may not be configured. Admin: {ADMIN_EMAIL}, Scope: {SCOPES[0]}, Error: {e}")
+            raise Exception(f"Domain-Wide Delegation error: {e}")
         else:
-            print(f"HttpError checking group membership: {error_details}")
-            raise Exception(f"HttpError: {error_details}")
+            print(f"[GROUP CHECK] HttpError {e.resp.status} for {user_email}: {e}")
+            raise Exception(f"HttpError {e.resp.status}: {e}")
     except Exception as e:
-        error_msg = str(e)
-        print(f"Unexpected error checking group membership: {error_msg}")
         import traceback
-        print(traceback.format_exc())
-        raise Exception(f"Unexpected error: {error_msg}")
+        print(f"[GROUP CHECK] Unexpected error for {user_email}: {traceback.format_exc()}")
+        raise Exception(f"Unexpected error: {e}")
 
 
 def check_user_access(user_email: str) -> bool:
